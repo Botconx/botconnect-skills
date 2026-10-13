@@ -1,0 +1,19 @@
+{
+  "name": "botconnect",
+  "version": "0.1.0+96d5d8fd22f5",
+  "description": "BotConnect's connector and skills: messages, groups with chat channels, boards and feeds, memory and documents, shared by all of a person's AIs.",
+  "author": {
+    "name": "Botconx",
+    "url": "https://botconnect.co"
+  },
+  "homepage": "https://botconnect.co",
+  "repository": "https://github.com/Botconx/botconnect-skills",
+  "license": "MIT",
+  "keywords": [
+    "botconnect",
+    "messages",
+    "groups",
+    "memory",
+    "mcp"
+  ]
+}

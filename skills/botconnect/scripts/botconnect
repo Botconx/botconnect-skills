@@ -1,0 +1,961 @@
+#!/usr/bin/env python3
+# Built for bot-api from bot/botconnect.py by the BotConnect Factory. Do not edit.
+"""botconnect: the BotConnect client for AIs that run commands.
+
+One file, standard library only, Python 3.9 and later.
+
+    botconnect connect                        connect this AI: shows a link and a code to approve
+    botconnect connect --wait                 finish connecting, once the person has approved
+    botconnect connect --code BCDF-GHJK       connect with a pairing code from the account page
+                                              (a build for a host that keeps the credential
+                                              itself, such as Muse, has no connect command)
+    botconnect context                        your account, this connection, what is new
+    botconnect functions search "a task"      find functions in the catalog
+    botconnect functions describe <id>        when to use a function, and its schemas
+    botconnect call <id> '<json input>'       run a function
+    botconnect call <id> '<json>' --file content_base64=report.pdf
+                                              send a file, base64-encoded into an input field
+    botconnect call <id> '<json>' --save content_base64=report.pdf
+                                              write a base64 field of the answer to a file
+
+Every command prints one JSON document on standard output: the API's answer, or a problem with
+a "code". The exit status says which:
+
+    0  the API answered
+    1  the API refused the call; the problem's "code" says why
+    2  the command line is wrong
+    3  the API could not be reached, or its answer could not be read
+    4  there is no working credential
+"""
+
+import argparse
+import base64
+import binascii
+import contextlib
+import json
+import os
+import re
+import socket
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+import uuid
+
+VERSION = "0.3.0"
+DEFAULT_API_URL = "https://api.botconnect.co"
+TIMEOUT_SECONDS = 30
+# Waits before each retry of a request that failed on the way, or that got a 502, 503 or 504.
+# A retried write sends the same Idempotency-Key, so it runs once.
+RETRY_DELAYS = (0.5, 2.0)
+RETRY_STATUSES = (502, 503, 504)
+
+EXIT_OK = 0
+EXIT_REFUSED = 1
+EXIT_USAGE = 2
+EXIT_UNREACHABLE = 3
+EXIT_NOT_CONNECTED = 4
+
+FUNCTION_ID = re.compile(r"^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$")
+FIELD_NAME = re.compile(r"^[a-z][a-z0-9_]*$")
+# The largest file the API takes: its base64 must fit in the 4.5 MB a request may carry.
+FILE_LIMIT_BYTES = 3 * 1024 * 1024
+
+# The steps below are marked so that a client's build can replace them (docs/decisions/0024).
+# Everything outside the marks is the same in every build.
+
+# --- begin: client ---
+CLIENT = "other"
+
+
+# --- end: client ---
+
+# --- begin: credential ---
+NOT_CONNECTED_HINT = (
+    'Run this program\'s "connect" command. It shows a link and a code: give both to the '
+    "person, who approves the connection on the BotConnect website, then run "
+    '"connect --wait". Never ask the person for a key or a password in the chat.'
+)
+# Where the credential file lives, when the default folder doesn't suit (docs/decisions/0031).
+CONFIG_DIR_VARIABLE = "BOTCONNECT_CONFIG_DIR"
+DEVICE_CODE_GRANT = "urn:ietf:params:oauth:grant-type:device_code"
+# An access token this close to its expiry is refreshed before it is used.
+REFRESH_MARGIN_SECONDS = 60
+# How long "connect --wait" waits for the person by default: less than the two minutes that
+# AI hosts commonly give a command.
+DEFAULT_WAIT_SECONDS = 100
+
+
+def config_dir():
+    """The folder for the credential file: only the person's own account can read it."""
+    explicit = os.environ.get(CONFIG_DIR_VARIABLE, "").strip()
+    if explicit:
+        return explicit
+    if os.name == "nt":
+        base = os.environ.get("APPDATA") or os.path.expanduser("~")
+    else:
+        base = os.environ.get("XDG_CONFIG_HOME") or os.path.join(os.path.expanduser("~"), ".config")
+    return os.path.join(base, "botconnect")
+
+
+def credential_path():
+    """One file for each kind of AI, so two AIs on one computer get two connections."""
+    return os.path.join(config_dir(), CLIENT + ".json")
+
+
+def _load_store():
+    try:
+        with open(credential_path(), encoding="utf-8") as handle:
+            store = json.load(handle)
+    except FileNotFoundError:
+        return {"version": 1, "apis": {}}
+    except (OSError, ValueError) as error:
+        raise Problem(
+            EXIT_NOT_CONNECTED,
+            "The credential file can't be read",
+            "not_connected",
+            "%s: %s" % (credential_path(), error),
+            hint=NOT_CONNECTED_HINT,
+        )
+    if not isinstance(store, dict) or not isinstance(store.get("apis"), dict):
+        return {"version": 1, "apis": {}}
+    return store
+
+
+def _save_store(store):
+    """Writes the file whole, readable only by its owner, so a reader never sees half of it."""
+    path = credential_path()
+    os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
+    temporary = "%s.%d.tmp" % (path, os.getpid())
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        json.dump(store, handle, indent=2)
+    os.replace(temporary, path)
+
+
+@contextlib.contextmanager
+def _locked():
+    """Holds a lock while the file changes, so two commands never use one refresh token twice."""
+    path = credential_path() + ".lock"
+    os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
+    with open(path, "a+") as handle:
+        if os.name == "nt":
+            import msvcrt
+
+            handle.seek(0)
+            for _ in range(30):
+                try:
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                    break
+                except OSError:
+                    time.sleep(1)
+            else:
+                raise Problem(EXIT_UNREACHABLE, "The credential file is busy", "unreachable")
+            try:
+                yield
+            finally:
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
+def _entry(base):
+    return _load_store()["apis"].get(base) or {}
+
+
+def _update_entry(base, change):
+    """Changes this API's entry under the lock. `change` takes the entry and returns the new one."""
+    with _locked():
+        store = _load_store()
+        entry = change(dict(store["apis"].get(base) or {}))
+        if entry:
+            store["apis"][base] = entry
+        else:
+            store["apis"].pop(base, None)
+        _save_store(store)
+        return entry
+
+
+def _auth_request(method, url, form=None, body=None):
+    """A request to the authorization server, which takes no credential. Returns (status, JSON)."""
+    if not is_safe_url(url):
+        raise Problem(
+            EXIT_UNREACHABLE,
+            "Unsafe sign-in address",
+            "invalid_response",
+            "BotConnect named a sign-in address that is not https: %s" % url,
+        )
+    headers = {"Accept": "application/json", "User-Agent": user_agent()}
+    data = None
+    if form is not None:
+        data = urllib.parse.urlencode(form).encode("utf-8")
+        headers["Content-Type"] = "application/x-www-form-urlencoded"
+    elif body is not None:
+        data = json.dumps(body).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+    request = urllib.request.Request(url, data=data, headers=headers, method=method)
+    try:
+        response = open_request(request, TIMEOUT_SECONDS)
+    except urllib.error.HTTPError as error:
+        try:
+            answer = read_json(error)
+        except Exception:
+            answer = {}
+        return error.code, answer if isinstance(answer, dict) else {}
+    except OSError as error:
+        raise Problem(
+            EXIT_UNREACHABLE,
+            "BotConnect could not be reached",
+            "unreachable",
+            str(getattr(error, "reason", None) or error),
+        )
+    try:
+        with response:
+            answer = read_json(response)
+    except Exception:
+        raise Problem(EXIT_UNREACHABLE, "The answer could not be read", "invalid_response")
+    return response.status, answer if isinstance(answer, dict) else {}
+
+
+def _well_known(url, name):
+    """Where RFC 8414 and RFC 9728 put a URL's metadata: after the host, before the path."""
+    parts = urllib.parse.urlsplit(url)
+    path = parts.path.rstrip("/")
+    return "%s://%s/.well-known/%s%s" % (parts.scheme, parts.netloc, name, path)
+
+
+def _discover(base):
+    """Finds the authorization server for this API's /v1, as its resource metadata names it."""
+    resource = base + "/v1"
+    status, metadata = _auth_request("GET", _well_known(resource, "oauth-protected-resource"))
+    servers = metadata.get("authorization_servers") or []
+    if status != 200 or metadata.get("resource") != resource or not servers:
+        raise Problem(
+            EXIT_UNREACHABLE,
+            "BotConnect's sign-in could not be found",
+            "invalid_response",
+            "The API at %s did not describe its sign-in." % base,
+        )
+    issuer = servers[0]
+    status, server = _auth_request("GET", _well_known(issuer, "oauth-authorization-server"))
+    endpoints = {}
+    for name in ("registration_endpoint", "device_authorization_endpoint", "token_endpoint"):
+        endpoints[name] = server.get(name)
+    if status != 200 or server.get("issuer") != issuer or not all(endpoints.values()):
+        raise Problem(
+            EXIT_UNREACHABLE,
+            "BotConnect's sign-in could not be found",
+            "invalid_response",
+            "The sign-in server %s did not describe the device flow." % issuer,
+        )
+    endpoints["resource"] = resource
+    return endpoints
+
+
+def _device_name(given):
+    name = (given or socket.gethostname() or "").strip()
+    return re.sub(r"\s+", " ", name)[:60] or "My computer"
+
+
+def _code_link(pending):
+    return pending.get("verification_uri_complete") or pending.get("verification_uri")
+
+
+def _shown_code(code):
+    """A code as the approval page shows it, such as BCDF-GHJK."""
+    code = (code or "").replace("-", "").upper()
+    return code[:4] + "-" + code[4:] if len(code) == 8 else code
+
+
+def _approval_needed(pending):
+    return {
+        "status": "approval_needed",
+        "code": _shown_code(pending["user_code"]),
+        "url": _code_link(pending),
+        "expires_at": _iso(pending["expires_at"]),
+        "next": (
+            "Give the person the link and the code. They open the link, log in to BotConnect, "
+            'check that the code matches, and approve. Then run "connect --wait".'
+        ),
+    }
+
+
+def _iso(seconds):
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(seconds))
+
+
+def start_device_flow(base, device_name):
+    """Flow 1 (docs/decisions/0022): registers this copy, then asks for a code to approve."""
+    endpoints = _discover(base)
+    status, client = _auth_request(
+        "POST",
+        endpoints["registration_endpoint"],
+        body={
+            "client_name": device_name,
+            "software_id": CLIENT,
+            "software_version": VERSION,
+            "grant_types": [DEVICE_CODE_GRANT, "refresh_token"],
+            "token_endpoint_auth_method": "none",
+            "resources": [endpoints["resource"]],
+        },
+    )
+    if status not in (200, 201) or not client.get("client_id"):
+        raise Problem(
+            EXIT_REFUSED,
+            "BotConnect refused to register this AI",
+            client.get("error") or "not_allowed",
+            client.get("error_description"),
+        )
+    status, code = _auth_request(
+        "POST",
+        endpoints["device_authorization_endpoint"],
+        form={
+            "client_id": client["client_id"],
+            "scope": "offline_access",
+            "resource": endpoints["resource"],
+        },
+    )
+    if status != 200 or not code.get("device_code"):
+        if status == 429:
+            raise Problem(
+                EXIT_REFUSED,
+                "Too many requests to connect",
+                "limit_reached",
+                "Try again in ten minutes.",
+                retry_after_seconds=600,
+            )
+        raise Problem(
+            EXIT_REFUSED,
+            "BotConnect refused to start connecting",
+            code.get("error") or "not_allowed",
+            code.get("error_description"),
+        )
+    pending = {
+        "client_id": client["client_id"],
+        "token_endpoint": endpoints["token_endpoint"],
+        "resource": endpoints["resource"],
+        "device_code": code["device_code"],
+        "user_code": code.get("user_code"),
+        "verification_uri": code.get("verification_uri"),
+        "verification_uri_complete": code.get("verification_uri_complete"),
+        "interval": int(code.get("interval") or 5),
+        "expires_at": time.time() + int(code.get("expires_in") or 600),
+    }
+
+    def remember(entry):
+        entry["pending"] = pending
+        return entry
+
+    _update_entry(base, remember)
+    return _approval_needed(pending)
+
+
+def _tokens_entry(pending, tokens):
+    return {
+        "kind": "oauth",
+        "client_id": pending["client_id"],
+        "token_endpoint": pending["token_endpoint"],
+        "resource": pending["resource"],
+        "access_token": tokens["access_token"],
+        "refresh_token": tokens.get("refresh_token"),
+        "expires_at": time.time() + int(tokens.get("expires_in") or 3600),
+    }
+
+
+def wait_for_approval(base, timeout):
+    """Polls the token endpoint until the person approves or denies, or `timeout` passes."""
+    pending = _entry(base).get("pending")
+    if not pending:
+        raise Problem(
+            EXIT_NOT_CONNECTED,
+            "Nothing is waiting for approval",
+            "not_connected",
+            'Run "connect" first. It shows the link and the code to approve.',
+        )
+    deadline = time.time() + timeout
+    interval = max(1, int(pending.get("interval") or 5))
+    while True:
+        if time.time() >= pending["expires_at"]:
+            _update_entry(base, lambda entry: {k: v for k, v in entry.items() if k != "pending"})
+            raise Problem(
+                EXIT_NOT_CONNECTED,
+                "The code expired",
+                "approval_expired",
+                'Nobody approved the code in time. Run "connect" again for a new one.',
+            )
+        status, answer = _auth_request(
+            "POST",
+            pending["token_endpoint"],
+            form={
+                "grant_type": DEVICE_CODE_GRANT,
+                "device_code": pending["device_code"],
+                "client_id": pending["client_id"],
+            },
+        )
+        if status == 200 and answer.get("access_token"):
+            _update_entry(base, lambda entry: _tokens_entry(pending, answer))
+            return
+        error = answer.get("error")
+        if error == "slow_down":
+            interval += 5
+        elif error != "authorization_pending":
+            _update_entry(base, lambda entry: {k: v for k, v in entry.items() if k != "pending"})
+            if error == "access_denied":
+                raise Problem(
+                    EXIT_NOT_CONNECTED,
+                    "The person denied the connection",
+                    "approval_denied",
+                    "Don't try again unless the person asks you to.",
+                )
+            if error == "expired_token":
+                raise Problem(
+                    EXIT_NOT_CONNECTED,
+                    "The code expired",
+                    "approval_expired",
+                    'Nobody approved the code in time. Run "connect" again for a new one.',
+                )
+            raise Problem(
+                EXIT_REFUSED,
+                "BotConnect refused the connection",
+                error or "not_allowed",
+                answer.get("error_description"),
+            )
+        if time.time() + interval > deadline:
+            return _approval_needed(pending)
+        time.sleep(interval)
+
+
+def pair(base, code, device_name):
+    """Flow 2: exchanges a pairing code from the account page for this connection's API key."""
+    answer = send(
+        base,
+        "POST",
+        "/v1/connect/pair",
+        body={"code": code, "device_name": device_name},
+        authenticated=False,
+    )
+    key = answer.get("api_key")
+    if not isinstance(key, str) or not key:
+        raise Problem(EXIT_UNREACHABLE, "The answer could not be read", "invalid_response")
+    _update_entry(base, lambda entry: {"kind": "api_key", "api_key": key})
+
+
+def _refresh(base, entry):
+    """Trades the refresh token for new tokens. The caller holds the lock."""
+    status, answer = _auth_request(
+        "POST",
+        entry["token_endpoint"],
+        form={
+            "grant_type": "refresh_token",
+            "refresh_token": entry.get("refresh_token") or "",
+            "client_id": entry["client_id"],
+            "resource": entry["resource"],
+        },
+    )
+    if status != 200 or not answer.get("access_token"):
+        raise Problem(
+            EXIT_NOT_CONNECTED,
+            "This AI is no longer connected",
+            "unauthenticated",
+            "BotConnect refused to renew the connection. The person may have disconnected it.",
+            hint=NOT_CONNECTED_HINT,
+        )
+    renewed = dict(entry)
+    renewed["access_token"] = answer["access_token"]
+    renewed["refresh_token"] = answer.get("refresh_token") or entry.get("refresh_token")
+    renewed["expires_at"] = time.time() + int(answer.get("expires_in") or 3600)
+    return renewed
+
+
+def _fresh_token(base, force=False):
+    """The access token, renewed first when it is about to expire, or when `force` is set."""
+    entry = _entry(base)
+    if entry.get("kind") != "oauth":
+        return None
+    if not force and entry.get("expires_at", 0) - REFRESH_MARGIN_SECONDS > time.time():
+        return entry["access_token"]
+    stale = entry.get("access_token")
+
+    def renew(current):
+        # Another command may have renewed it while this one waited for the lock.
+        if current.get("kind") != "oauth":
+            return current
+        if current.get("access_token") != stale and current.get("expires_at", 0) > time.time():
+            return current
+        return _refresh(base, current)
+
+    return _update_entry(base, renew).get("access_token")
+
+
+def _environment_key():
+    return os.environ.get("BOTCONNECT_API_KEY", "").strip()
+
+
+def attach_credential(request, base):
+    """Adds the credential to a request. Returns False when there is none."""
+    key = _environment_key()
+    if not key:
+        entry = _entry(base)
+        key = entry.get("api_key") if entry.get("kind") == "api_key" else _fresh_token(base)
+    if not key:
+        return False
+    request.add_header("Authorization", "Bearer " + key)
+    return True
+
+
+def renew_credential(base):
+    """After a 401: renews an OAuth token once. Returns True when the request may be retried."""
+    if _environment_key() or _entry(base).get("kind") != "oauth":
+        return False
+    return bool(_fresh_token(base, force=True))
+
+
+def has_credential(base):
+    entry = _entry(base)
+    return bool(_environment_key() or entry.get("kind") in ("api_key", "oauth"))
+
+
+def connected(base, already):
+    """What connecting printed: who this AI is connected as, from the API itself."""
+    context = send(base, "GET", "/v1/context")
+    data = context.get("data") if isinstance(context.get("data"), dict) else {}
+    result = {"status": "connected", "account": data.get("account"), "connection": data.get("connection")}
+    if already:
+        result["note"] = 'This AI was already connected. To connect it again, run "connect --new".'
+    return result
+
+
+def run_connect(args):
+    base = api_base(args)
+    if args.code:
+        pair(base, args.code, _device_name(args.name))
+        return connected(base, False)
+    if args.wait:
+        waiting = wait_for_approval(base, args.timeout)
+        return waiting if waiting else connected(base, False)
+    if not args.new and has_credential(base):
+        try:
+            return connected(base, True)
+        except Problem as problem:
+            if problem.exit_code != EXIT_NOT_CONNECTED:
+                raise
+    pending = _entry(base).get("pending")
+    if not args.new and pending and pending["expires_at"] - 60 > time.time():
+        return _approval_needed(pending)
+    return start_device_flow(base, _device_name(args.name))
+
+
+def add_credential_commands(commands):
+    connect = commands.add_parser(
+        "connect",
+        help="Connect this AI to the person's BotConnect account.",
+        description=(
+            "Without options: shows a link and a code for the person to approve, then run "
+            "connect --wait. With --code: uses a pairing code from the account page."
+        ),
+    )
+    connect.add_argument("--wait", action="store_true", help="Wait for the person to approve.")
+    connect.add_argument(
+        "--timeout",
+        type=int,
+        default=DEFAULT_WAIT_SECONDS,
+        help="Seconds --wait waits before it reports that approval is still needed.",
+    )
+    connect.add_argument("--code", help="A pairing code from Connect a bot on the account page.")
+    connect.add_argument("--name", help="This computer's name, as the person will see it.")
+    connect.add_argument("--new", action="store_true", help="Connect again, as a new connection.")
+    connect.set_defaults(run=run_connect)
+
+
+# --- end: credential ---
+
+
+# --- begin: transport ---
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """A redirect would carry the credential to another address, so none is followed."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+_OPENER = urllib.request.build_opener(_NoRedirect)
+
+
+def open_request(request, timeout):
+    return _OPENER.open(request, timeout=timeout)
+
+
+def read_json(response):
+    """Reads the body of a response, or of an HTTPError, as JSON."""
+    return json.loads(response.read().decode("utf-8"))
+
+
+# --- end: transport ---
+
+
+class Problem(Exception):
+    """Something to report instead of an answer, shaped like the API's problem details."""
+
+    def __init__(self, exit_code, title, code, detail=None, **extra):
+        super().__init__(title)
+        self.exit_code = exit_code
+        self.body = {"title": title, "code": code}
+        if detail:
+            self.body["detail"] = detail
+        self.body.update(extra)
+
+
+def user_agent():
+    return "botconnect/%s (%s)" % (VERSION, CLIENT)
+
+
+def is_safe_url(url):
+    """https, or http to this computer: nothing else may carry a credential."""
+    parts = urllib.parse.urlsplit(url or "")
+    host = parts.hostname or ""
+    local = host in ("localhost", "127.0.0.1", "::1") or host.endswith(".localhost")
+    return bool(host) and (parts.scheme == "https" or (parts.scheme == "http" and local))
+
+
+def api_base(args):
+    """The API base URL: --api-url, then BOTCONNECT_API_URL, then production."""
+    url = (args.api_url or os.environ.get("BOTCONNECT_API_URL") or DEFAULT_API_URL).strip()
+    url = url.rstrip("/")
+    if is_safe_url(url):
+        return url
+    raise Problem(
+        EXIT_USAGE,
+        "Wrong API URL",
+        "invalid_input",
+        "The API URL must start with https://. Only a local server may use http://.",
+    )
+
+
+def refusal(error, idempotency_key):
+    """Turns an HTTP error into a Problem, keeping the API's own problem details."""
+    try:
+        body = read_json(error)
+    except Exception:
+        body = None
+    if not isinstance(body, dict):
+        body = {"title": str(error.reason or "Error")}
+    body.setdefault("status", error.code)
+    problem = Problem(EXIT_REFUSED, body.get("title", "Error"), body.get("code"))
+    problem.body = body
+    if error.code == 401:
+        problem.exit_code = EXIT_NOT_CONNECTED
+        body.setdefault("code", "unauthenticated")
+        body["hint"] = NOT_CONNECTED_HINT
+    elif error.code == 429:
+        retry_after = error.headers.get("Retry-After") if error.headers else None
+        if "retry_after_seconds" not in body and retry_after and retry_after.isdigit():
+            body["retry_after_seconds"] = int(retry_after)
+    elif error.code < 400 or error.code >= 500:
+        problem.exit_code = EXIT_UNREACHABLE
+        body["code"] = "unreachable"
+        if error.code < 400:
+            body["detail"] = "The API answered with a redirect, which botconnect does not follow."
+        if idempotency_key:
+            body["idempotency_key"] = idempotency_key
+    return problem
+
+
+def send(base, method, path, query=None, body=None, idempotency_key=None, authenticated=True):
+    """Sends one request, with retries, and returns the API's JSON answer."""
+    url = base + path
+    if query:
+        url += "?" + urllib.parse.urlencode(query)
+    headers = {"Accept": "application/json", "User-Agent": user_agent()}
+    data = None
+    if body is not None:
+        data = json.dumps(body).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+    if idempotency_key:
+        headers["Idempotency-Key"] = idempotency_key
+
+    failure = None
+    renewed = False
+    attempt = 0
+    while attempt <= len(RETRY_DELAYS):
+        if attempt:
+            time.sleep(RETRY_DELAYS[attempt - 1])
+        attempt += 1
+        request = urllib.request.Request(url, data=data, headers=headers, method=method)
+        if authenticated and attach_credential(request, base) is False:
+            raise Problem(
+                EXIT_NOT_CONNECTED,
+                "Not connected",
+                "not_connected",
+                "This AI has no BotConnect credential yet.",
+                hint=NOT_CONNECTED_HINT,
+            )
+        try:
+            response = open_request(request, TIMEOUT_SECONDS)
+        except urllib.error.HTTPError as error:
+            failure = refusal(error, idempotency_key)
+            if error.code == 401 and authenticated and not renewed and renew_credential(base):
+                # The access token was refused, and a new one was issued. Try once more.
+                renewed = True
+                attempt -= 1
+                continue
+            if error.code in RETRY_STATUSES:
+                continue
+            raise failure
+        except OSError as error:
+            # No connection, a timeout, or a TLS failure. The request may or may not have arrived.
+            reason = getattr(error, "reason", None) or error
+            failure = Problem(
+                EXIT_UNREACHABLE,
+                "The API could not be reached",
+                "unreachable",
+                str(reason),
+            )
+            if idempotency_key:
+                failure.body["idempotency_key"] = idempotency_key
+            continue
+        try:
+            with response:
+                return read_json(response)
+        except Exception:
+            raise Problem(
+                EXIT_UNREACHABLE,
+                "The answer could not be read",
+                "invalid_response",
+                "The API's answer was not JSON.",
+            )
+    if failure.body.get("idempotency_key"):
+        failure.body["hint"] = (
+            "It is safe to try again with --idempotency-key %s: the write then runs once."
+            % failure.body["idempotency_key"]
+        )
+    raise failure
+
+
+def function_id(value):
+    if not FUNCTION_ID.match(value or ""):
+        raise Problem(
+            EXIT_USAGE,
+            "Wrong function ID",
+            "invalid_input",
+            "A function ID looks like messages.send. Find one with: functions search",
+        )
+    return value
+
+
+def run_context(args):
+    return send(api_base(args), "GET", "/v1/context")
+
+
+def run_search(args):
+    query = {"q": " ".join(args.query)}
+    if args.namespace:
+        query["namespace"] = args.namespace
+    return send(api_base(args), "GET", "/v1/functions", query=query)
+
+
+def run_describe(args):
+    return send(api_base(args), "GET", "/v1/functions/" + function_id(args.id))
+
+
+def field_and_path(value, option):
+    """Splits a --file or --save value, such as content_base64=report.pdf."""
+    field, _, path = (value or "").partition("=")
+    if not FIELD_NAME.match(field) or not path:
+        raise Problem(
+            EXIT_USAGE,
+            "Wrong %s" % option,
+            "invalid_input",
+            "%s takes a field and a path, such as %s content_base64=report.pdf" % (option, option),
+        )
+    return field, path
+
+
+def add_files(value, files):
+    """Puts each --file into its input field as base64 (docs/decisions/0052)."""
+    for option in files or []:
+        field, path = field_and_path(option, "--file")
+        if field in value:
+            raise Problem(
+                EXIT_USAGE,
+                "Wrong input",
+                "invalid_input",
+                "The input already has %s, which --file would fill." % field,
+            )
+        try:
+            size = os.path.getsize(path)
+            if size > FILE_LIMIT_BYTES:
+                raise Problem(
+                    EXIT_USAGE,
+                    "File too large",
+                    "invalid_input",
+                    "%s is %d bytes. The API takes files of at most 3 MB." % (path, size),
+                )
+            with open(path, "rb") as handle:
+                data = handle.read()
+        except OSError as error:
+            raise Problem(EXIT_USAGE, "File not read", "invalid_input", str(error))
+        value[field] = base64.b64encode(data).decode("ascii")
+
+
+def save_files(result, saves):
+    """Writes each --save field of the answer's data to its file, in place of printing it."""
+    if not saves:
+        return result
+    data = result.get("data") if isinstance(result, dict) else None
+    saved = []
+    for option in saves:
+        field, path = field_and_path(option, "--save")
+        encoded = data.get(field) if isinstance(data, dict) else None
+        if not isinstance(encoded, str):
+            raise Problem(
+                EXIT_USAGE,
+                "Nothing to save",
+                "invalid_input",
+                "The answer has no %s to save. A function may give its file only when asked: "
+                'for docs.file, add "content": true to the input.' % field,
+            )
+        try:
+            content = base64.b64decode(encoded, validate=True)
+        except (binascii.Error, ValueError):
+            raise Problem(
+                EXIT_UNREACHABLE,
+                "The answer could not be read",
+                "invalid_response",
+                "The answer's %s is not base64." % field,
+            )
+        try:
+            # Never over an existing file: the person may want it.
+            with open(path, "xb") as handle:
+                handle.write(content)
+        except FileExistsError:
+            raise Problem(
+                EXIT_USAGE,
+                "File exists",
+                "invalid_input",
+                "%s already exists. Save to a new path, or remove it first." % path,
+            )
+        except OSError as error:
+            raise Problem(EXIT_USAGE, "File not written", "invalid_input", str(error))
+        del data[field]
+        saved.append({"field": field, "path": os.path.abspath(path), "bytes": len(content)})
+    result["saved"] = saved
+    return result
+
+
+def run_call(args):
+    name = function_id(args.id)
+    if args.input_file == "-":
+        text = sys.stdin.read()
+    elif args.input_file:
+        with open(args.input_file, encoding="utf-8") as handle:
+            text = handle.read()
+    else:
+        text = args.input
+    try:
+        value = json.loads(text) if text.strip() else {}
+    except ValueError as error:
+        raise Problem(EXIT_USAGE, "Wrong input", "invalid_input", "The input is not JSON: %s" % error)
+    if not isinstance(value, dict):
+        raise Problem(EXIT_USAGE, "Wrong input", "invalid_input", "The input must be a JSON object.")
+    add_files(value, args.file)
+    for option in args.save or []:
+        field_and_path(option, "--save")
+    # Every call carries a key. The API uses it for writes and ignores it for reads.
+    key = args.idempotency_key or str(uuid.uuid4())
+    result = send(
+        api_base(args),
+        "POST",
+        "/v1/functions/%s/call" % name,
+        body=value,
+        idempotency_key=key,
+    )
+    return save_files(result, args.save)
+
+
+class _Parser(argparse.ArgumentParser):
+    """Reports a wrong command line as a problem on standard output, like every other failure."""
+
+    def error(self, message):
+        raise Problem(EXIT_USAGE, "Wrong command", "invalid_input", message, usage=self.format_usage().strip())
+
+
+def build_parser():
+    parser = _Parser(
+        prog="botconnect",
+        description="The BotConnect client. Every command prints JSON on standard output.",
+    )
+    parser.add_argument("--version", action="version", version="botconnect " + VERSION)
+    parser.add_argument(
+        "--api-url",
+        help="The API base URL. Defaults to BOTCONNECT_API_URL, then %s" % DEFAULT_API_URL,
+    )
+    commands = parser.add_subparsers(dest="command", required=True, metavar="command")
+
+    add_credential_commands(commands)
+
+    context = commands.add_parser(
+        "context", help="Your account, this connection, and what is new. Start here."
+    )
+    context.set_defaults(run=run_context)
+
+    functions = commands.add_parser("functions", help="Find and describe functions.")
+    actions = functions.add_subparsers(dest="action", required=True, metavar="action")
+    search = actions.add_parser("search", help="Search the catalog by task.")
+    search.add_argument("query", nargs="*", help="What you want to do, in a few words.")
+    search.add_argument("--namespace", help="Only functions in this namespace, such as messages.")
+    search.set_defaults(run=run_search)
+    describe = actions.add_parser("describe", help="Describe one function and its schemas.")
+    describe.add_argument("id", help="A function ID, such as messages.send.")
+    describe.set_defaults(run=run_describe)
+
+    call = commands.add_parser("call", help="Run a function.")
+    call.add_argument("id", help="A function ID, such as messages.send.")
+    call.add_argument("input", nargs="?", default="{}", help="The input, as a JSON object.")
+    call.add_argument("--input-file", help="Read the input from a file, or from - for standard input.")
+    call.add_argument(
+        "--file",
+        action="append",
+        metavar="FIELD=PATH",
+        help="Send a file: its bytes go into the input field FIELD as base64. Up to 3 MB.",
+    )
+    call.add_argument(
+        "--save",
+        action="append",
+        metavar="FIELD=PATH",
+        help="Write the answer's base64 field FIELD to a new file at PATH, instead of printing it.",
+    )
+    call.add_argument(
+        "--idempotency-key",
+        help="Repeat a write safely: send the key of the earlier attempt, and it runs once.",
+    )
+    call.set_defaults(run=run_call)
+    return parser
+
+
+def emit(value):
+    print(json.dumps(value, indent=2, ensure_ascii=False))
+
+
+def main(argv=None):
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    try:
+        args = build_parser().parse_args(argv)
+        result = args.run(args)
+    except Problem as problem:
+        emit(problem.body)
+        return problem.exit_code
+    emit(result)
+    return EXIT_OK
+
+
+if __name__ == "__main__":
+    sys.exit(main())

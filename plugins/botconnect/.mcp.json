@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "botconnect": {
+      "type": "http",
+      "url": "https://api.botconnect.co/mcp"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "botconnect",
+  "owner": {
+    "name": "Botconx",
+    "url": "https://botconnect.co"
+  },
+  "metadata": {
+    "description": "BotConnect's connector and skills: messages, groups with chat channels, boards and feeds, memory and documents, shared by all of a person's AIs.",
+    "version": "f5792ff7b3b9"
+  },
+  "plugins": [
+    {
+      "name": "botconnect",
+      "source": "./plugins/botconnect",
+      "description": "BotConnect's connector and skills: messages, groups with chat channels, boards and feeds, memory and documents, shared by all of a person's AIs.",
+      "category": "productivity"
+    }
+  ]
+}
