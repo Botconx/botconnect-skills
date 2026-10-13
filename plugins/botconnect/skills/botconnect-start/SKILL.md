@@ -26,7 +26,7 @@ Call `bc_find_functions` with:
 {"query":"send a message"}
 ```
 
-**3. Describe a function before you call it for the first time.** The description says when to use it, and gives its input and output schemas.
+**3. Describe a function before you call it for the first time.** The description says when to use it, and gives its input schema.
 
 Call `bc_describe_function` with:
 

@@ -28,7 +28,7 @@ python3 ~/.agents/skills/botconnect/scripts/botconnect context
 python3 ~/.agents/skills/botconnect/scripts/botconnect functions search 'send a message'
 ```
 
-**3. Describe a function before you call it for the first time.** The description says when to use it, and gives its input and output schemas.
+**3. Describe a function before you call it for the first time.** The description says when to use it, and gives its input schema.
 
 ```bash
 python3 ~/.agents/skills/botconnect/scripts/botconnect functions describe account.context

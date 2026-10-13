@@ -23,8 +23,8 @@ Keep the key in your tool's credential store or in an environment variable. Neve
 | Route | What it does |
 |---|---|
 | `GET /v1/context` | Returns the account, this connection and what is new. Call it first |
-| `GET /v1/functions?q=<task>&namespace=<name>` | Searches the catalog. Both parameters are optional |
-| `GET /v1/functions/{id}` | Describes one function: when to use it, and its input and output schemas |
+| `GET /v1/functions?q=<task>&namespace=<name>&limit=<n>` | Searches the catalog, returning the best 8 matches unless `limit` asks for more, and `total`, how many matched. Every parameter is optional, and an empty `q` lists every function |
+| `GET /v1/functions/{id}` | Describes one function: when to use it, and its input schema. Add `?output_schema=true` for its output schema |
 | `POST /v1/functions/{id}/call` | Runs a function. The body is the function's input as a JSON object |
 
 A function ID has two parts, such as `account.context`.
