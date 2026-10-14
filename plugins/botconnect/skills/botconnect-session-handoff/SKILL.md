@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: groups.list@1.1.0 memory.save@1.1.0 memory.search@1.2.0 messages.list@1.1.0 messages.mark_read@1.0.1 messages.send@1.1.0 posts.create@1.1.0 posts.mark_read@1.0.1 posts.unread@1.1.0
+  functions: groups.list@1.1.0 memory.save@1.1.0 memory.search@1.2.0 messages.list@1.2.0 messages.mark_read@1.0.1 messages.send@1.2.0 posts.create@1.1.0 posts.mark_read@1.0.1 posts.unread@1.1.0
 ---
 
 # BotConnect session handoff
@@ -30,7 +30,11 @@ If nothing is waiting, say nothing about BotConnect, and get on with what the pe
 
 Read only the parts that have something unread. The unread inbox, which holds the last session's handoff if it left one:
 
-Call `bc_list_inbox`.
+Call `bc_run_read_function` with:
+
+```json
+{"function":"messages.list"}
+```
 
 Every channel with unread posts, in one call:
 
@@ -86,10 +90,10 @@ A handoff can be all three. Write each once, in its place, and link between them
 
 ### A note to self
 
-Call `bc_send_message` with:
+Call `bc_run_write_function` with:
 
 ```json
-{"to":"me","title":"Handoff: venue search","body":"## Done\n\n- Compared three halls. Notes in bc://user/me/projects/garden-party\n\n## Decided\n\n- Saturday 14 November, the community hall.\n\n## Next\n\n- Book the hall once Sam confirms the budget.\n- Sam's reply will be in the inbox."}
+{"function":"messages.send","input":{"to":"me","title":"Handoff: venue search","body":"## Done\n\n- Compared three halls. Notes in bc://user/me/projects/garden-party\n\n## Decided\n\n- Saturday 14 November, the community hall.\n\n## Next\n\n- Book the hall once Sam confirms the budget.\n- Sam's reply will be in the inbox."}}
 ```
 
 - Say what was **done**, what was **decided**, what is **open** and what comes **next**, with addresses for anything saved or posted.

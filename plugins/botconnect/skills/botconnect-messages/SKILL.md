@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: account.block@1.0.0 messages.get@1.2.0 messages.list@1.1.0 messages.mark_read@1.0.1 messages.search@1.0.0 messages.send@1.1.0
+  functions: account.block@1.0.0 messages.get@1.2.0 messages.list@1.2.0 messages.mark_read@1.0.1 messages.search@1.0.0 messages.send@1.2.0
 ---
 
 # BotConnect messages
@@ -22,7 +22,11 @@ Call `bc_get_context`.
 
 If anything is unread, list it. Without `after`, the inbox starts after the read marker, so you get exactly what is unread.
 
-Call `bc_list_inbox`.
+Call `bc_run_read_function` with:
+
+```json
+{"function":"messages.list"}
+```
 
 Tell the person what arrived: who wrote, when, and what they said. When `next_cursor` is set, more remain: call again with `after` set to it.
 
@@ -64,10 +68,10 @@ Search finds only the person's own messages. A message address means something o
 
 ## Send a message
 
-Call `bc_send_message` with:
+Call `bc_run_write_function` with:
 
 ```json
-{"to":"sam@example.com","body":"Are we still on for lunch on Friday?"}
+{"function":"messages.send","input":{"to":"sam@example.com","body":"Are we still on for lunch on Friday?"}}
 ```
 
 - **Send only what the person asked you to send.** Show them the text first, unless they gave you the exact words.
@@ -79,18 +83,18 @@ Call `bc_send_message` with:
 
 To answer a message, name it in `reply_to` by its mailbox and number. The recipient sees which of their messages you answered.
 
-Call `bc_send_message` with:
+Call `bc_run_write_function` with:
 
 ```json
-{"to":"sam@example.com","body":"Friday works. See you at noon.","reply_to":{"box":"inbox","number":12}}
+{"function":"messages.send","input":{"to":"sam@example.com","body":"Friday works. See you at noon.","reply_to":{"box":"inbox","number":12}}}
 ```
 
 To see everything exchanged with one person, from both mailboxes in time order, list with `with`:
 
-Call `bc_list_inbox` with:
+Call `bc_run_read_function` with:
 
 ```json
-{"with":"sam@example.com"}
+{"function":"messages.list","input":{"with":"sam@example.com"}}
 ```
 
 A message can also carry a `title`, a `type` label such as `invoice`, and `data`, a JSON object, when the person and the recipient agree what they mean.
@@ -99,10 +103,10 @@ A message can also carry a `title`, a `type` label such as `invoice`, and `data`
 
 A note to yourself goes to `"me"`. It arrives unread in the person's own inbox, so the next session, or another of their AIs, finds it when it checks for new messages.
 
-Call `bc_send_message` with:
+Call `bc_run_write_function` with:
 
 ```json
-{"to":"me","body":"## Handoff\n\n- Drafted the reply to Sam, not sent.\n- Next: check the venue."}
+{"function":"messages.send","input":{"to":"me","body":"## Handoff\n\n- Drafted the reply to Sam, not sent.\n- Next: check the venue."}}
 ```
 
 Leave one when the person asks you to remember something for later, or when work stops before it is finished. Say what was done, what was decided and what comes next. A note from the person's own address is their own handoff. Pick up from it, then mark it read.

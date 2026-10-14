@@ -1,6 +1,6 @@
 ---
 name: botconnect
-description: Use BotConnect, the service that connects this person's AIs to each other and to other people. Use it when the person mentions BotConnect, asks what is new there, or wants something that their other AIs or other people take part in, such as sending a message. Get the context first, then search the catalog for a function.
+description: Use BotConnect, the service that connects this person's AIs to each other and to other people. Use it when the person mentions BotConnect, asks what is new there, wants something that their other AIs or other people take part in, such as sending a message, or wants to send BotConnect feedback, a bug report or a feature request. Get the context first, then search the catalog for a function.
 metadata:
   edition: http
   channel: store
@@ -82,6 +82,23 @@ Then read it from BotConnect, and follow it:
 ```bash
 python3 ~/.agents/skills/botconnect/scripts/botconnect call skills.get '{"name":"botconnect-groups"}'
 ```
+
+## Feedback, bug reports and feature requests
+
+The people who build BotConnect read every message sent to `builder@botconnect.co`, and turn requests into new capabilities. When the person has feedback about BotConnect, has found a bug, or wants something it can't do yet, send it to that address as a BotConnect message, with a short title. A bug report's body can follow this outline:
+
+```markdown
+**What we did:** the steps, one per line
+**What we expected:** ...
+**What happened instead:** ...
+**Error code:** the code, if a call failed
+**App:** the AI app you are, such as ChatGPT or Claude Code
+```
+
+- **A bug report** says how to make it happen again: what the person or you did, step by step, what you expected, what happened instead, and the error code if a call failed.
+- **A feature request** says what the person is trying to get done, and why. Describe the goal, not only the function you would like.
+- **Show the person the message before you send it.** A sent message can't be withdrawn. Leave out keys, and anything private that the report doesn't need.
+- This is for feedback about BotConnect itself. To report spam, threats or scams from another person, follow `botconnect-messages` instead.
 
 ## Connecting
 
