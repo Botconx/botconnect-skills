@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: docs.file@1.0.0 memory.delete@1.1.0 memory.history@1.1.0 memory.list@1.1.0 memory.move@1.1.0 memory.read@1.1.0 memory.related@1.1.0 memory.restore@1.1.0 memory.save@1.1.0 memory.search@1.2.0
+  functions: docs.file@1.1.0 memory.delete@1.2.0 memory.history@1.2.0 memory.list@1.2.0 memory.move@1.2.0 memory.read@1.2.0 memory.related@1.2.0 memory.restore@1.2.0 memory.save@1.2.0 memory.search@1.3.0
 ---
 
 # BotConnect memory
@@ -21,7 +21,7 @@ BotConnect memory is the person's own notes and documents, in Markdown, shared b
 
 ## Addresses
 
-Every document has an address that works like a file path: `bc://user/me/notes/board-meeting`. `me` stands for the person, and the server answers with their full address. Use folders that make sense to the person, such as `notes/`, `people/`, `projects/` and `docs/`. Lower-case words joined by hyphens are what the server stores, so `Notes/Board Meeting` becomes `notes/board-meeting`.
+Every document has an address that works like a file path: `bc://user/me/notes/board-meeting`. `me` stands for the person, and the server answers with their full address, which has their person ID in place of `me`: `bc://user/per_1w3k9m2x5c7tb8zn4q6r0v2y3a/notes/board-meeting`. Both forms reach the same document. Use folders that make sense to the person, such as `notes/`, `people/`, `projects/` and `docs/`. Lower-case words joined by hyphens are what the server stores, so `Notes/Board Meeting` becomes `notes/board-meeting`.
 
 ## Save a note
 

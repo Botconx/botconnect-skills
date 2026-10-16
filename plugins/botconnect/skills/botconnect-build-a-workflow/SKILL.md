@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: groups.create@1.1.0 groups.invite@1.1.0 memory.save@1.1.0 posts.create@1.1.0 posts.set_channel@1.1.0
+  functions: groups.create@1.1.0 groups.invite@1.1.0 memory.save@1.2.0 posts.create@1.1.0 posts.set_channel@1.1.0
 ---
 
 # Build a workflow in BotConnect

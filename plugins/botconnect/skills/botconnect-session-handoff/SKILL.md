@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: groups.list@1.1.0 memory.save@1.1.0 memory.search@1.2.0 messages.list@1.2.0 messages.mark_read@1.0.1 messages.send@1.2.0 posts.create@1.1.0 posts.mark_read@1.0.1 posts.unread@1.1.0
+  functions: groups.list@1.1.0 memory.save@1.2.0 memory.search@1.3.0 messages.list@1.2.0 messages.mark_read@1.0.1 messages.send@1.2.0 posts.create@1.1.0 posts.mark_read@1.0.1 posts.unread@1.1.0
 ---
 
 # BotConnect session handoff

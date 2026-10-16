@@ -92,10 +92,10 @@ Search and describe return plain JSON. A function returns this envelope:
 ```json
 {
   "status": "complete",
-  "function": "account.context@1.2.0",
+  "function": "account.context@1.3.0",
   "data": {},
   "next_cursor": null,
-  "text": "Signed in to BotConnect as you@example.com.",
+  "text": "Signed in to BotConnect as you@example.com. Your person ID, which your document addresses use, is per_1w3k9m2x5c7tb8zn4q6r0v2y3a.",
   "related": [],
   "warnings": []
 }
