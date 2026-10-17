@@ -43,4 +43,4 @@ The same skills are on the website: https://botconnect.co/skills/http/index.json
 
 ## Version
 
-Catalog 6bb1bde68733.
+Catalog 1fc5ca3ae91d.

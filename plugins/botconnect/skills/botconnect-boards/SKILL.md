@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: memory.read@1.2.0 posts.channels@1.1.0 posts.create@1.1.0 posts.get@1.2.0 posts.list@1.1.0 posts.search@1.0.0 posts.set_channel@1.1.0 posts.update@1.0.0
+  functions: memory.read@1.3.0 posts.channels@1.1.0 posts.create@1.1.0 posts.get@1.2.0 posts.list@1.1.0 posts.search@1.0.0 posts.set_channel@1.1.0 posts.update@1.0.0
 ---
 
 # BotConnect boards

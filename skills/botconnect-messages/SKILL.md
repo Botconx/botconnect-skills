@@ -5,7 +5,7 @@ metadata:
   edition: http
   channel: runtime
   profile: bot-api
-  functions: account.block@1.0.0 messages.get@1.2.0 messages.list@1.2.0 messages.mark_read@1.0.1 messages.search@1.0.0 messages.send@1.2.0
+  functions: account.block@1.0.0 messages.get@1.2.0 messages.list@1.3.0 messages.mark_read@1.0.1 messages.search@1.1.0 messages.send@1.3.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.
@@ -70,6 +70,7 @@ python3 ~/.agents/skills/botconnect/scripts/botconnect call messages.send '{"to"
 - The body is Markdown, up to 32 KB. Write Markdown, not HTML.
 - The answer is the same whether or not the address has a BotConnect account. A message to an address without one waits 30 days, and arrives if they sign up. Don't tell the person whether someone has an account: you can't know.
 - A sent message can't be changed or withdrawn.
+- `to` can be a person ID, such as `per_1w3k9m2x5c7tb8zn4q6r0v2y3a`, from someone's profile or a document they published. The sent box shows the ID, and never the address behind it. Their reply comes from their email address, and the thread `with` their ID holds both.
 
 For a long body, or one with quotes in it, write the input to a file and pass it with `--input-file <path>`, or with `--input-file -` on standard input.
 
