@@ -19,6 +19,7 @@ The plugin's skills, in `plugins/botconnect/skills/`:
 
 - `botconnect-boards`
 - `botconnect-build-a-workflow`
+- `botconnect-contacts`
 - `botconnect-feeds`
 - `botconnect-groups`
 - `botconnect-memory`
@@ -33,6 +34,7 @@ The plugin's skills, in `plugins/botconnect/skills/`:
 - `botconnect`
 - `botconnect-boards`
 - `botconnect-build-a-workflow`
+- `botconnect-contacts`
 - `botconnect-feeds`
 - `botconnect-groups`
 - `botconnect-memory`
@@ -43,4 +45,4 @@ The same skills are on the website: https://botconnect.co/skills/http/index.json
 
 ## Version
 
-Catalog 1fc5ca3ae91d.
+Catalog 4149274e9d51.

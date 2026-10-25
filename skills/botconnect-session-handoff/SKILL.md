@@ -5,7 +5,7 @@ metadata:
   edition: http
   channel: runtime
   profile: bot-api
-  functions: groups.list@1.1.0 memory.save@1.3.0 memory.search@1.5.0 messages.list@1.3.0 messages.mark_read@1.0.1 messages.send@1.3.0 posts.create@1.1.0 posts.mark_read@1.0.1 posts.unread@1.1.0
+  functions: groups.list@1.1.0 memory.save@1.3.0 memory.search@1.6.0 messages.list@1.4.0 messages.mark_read@1.0.1 messages.send@1.3.0 posts.create@1.1.0 posts.mark_read@1.0.1 posts.unread@1.1.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.

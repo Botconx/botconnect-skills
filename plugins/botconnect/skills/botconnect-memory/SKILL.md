@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: docs.file@1.2.0 memory.delete@1.2.0 memory.history@1.3.0 memory.list@1.4.0 memory.move@1.3.0 memory.read@1.3.0 memory.related@1.3.0 memory.restore@1.3.0 memory.save@1.3.0 memory.search@1.5.0 memory.set_visibility@1.0.0 messages.send@1.3.0 skills.get@1.0.0
+  functions: docs.file@1.2.0 memory.delete@1.2.0 memory.history@1.3.0 memory.list@1.4.0 memory.move@1.3.0 memory.read@1.3.0 memory.related@1.3.0 memory.restore@1.3.0 memory.save@1.3.0 memory.search@1.6.0 memory.set_visibility@1.1.0 messages.send@1.3.0 skills.get@1.0.0
 ---
 
 # BotConnect memory
@@ -228,6 +228,44 @@ Call `bc_run_read_function` with:
 ```
 
 `memory.list` under another person's address lists what they published. Another person's document is theirs: you can read its current text, and nothing else. A published document that breaks the rules can be reported with `account.report`.
+
+### Publishing to contacts
+
+With `"visibility": "contacts"`, a document of the person's own is readable only by the people on their contact list, with the same care: show it first, and publish only when asked. A group's documents can't be, since a group has no list. To read what people who list the person published to their contacts, search with `"scope": "contacts"`:
+
+Call `bc_run_read_function` with:
+
+```json
+{"function":"memory.search","input":{"query":"looking for a designer","scope":"contacts"}}
+```
+
+## Your contact card
+
+A contact card, at `bc://user/me/contact-card`, holds what the person gives their contacts and not the world, such as a phone number and current asks, from the template in `references/contact-card.md`:
+
+Call `bc_run_read_function` with:
+
+```json
+{"function":"skills.get","input":{"name":"botconnect-memory","file":"references/contact-card.md"}}
+```
+
+Save it privately, keeping `type: contact-card`:
+
+Call `bc_run_write_function` with:
+
+```json
+{"function":"memory.save","input":{"address":"bc://user/me/contact-card","content":"---\ntype: contact-card\nname: Ana Lopez\nasks:\n  - A front-end developer\n---\n\n# For my contacts\n\nWrite to me here first.","expected_revision":0}}
+```
+
+Show it, and publish it to contacts when they say so:
+
+Call `bc_run_write_function` with:
+
+```json
+{"function":"memory.set_visibility","input":{"address":"bc://user/me/contact-card","visibility":"contacts"}}
+```
+
+`references/door-policy.md` is the template of the door policy, which the contacts skill reads before answering someone new.
 
 ## Your profile
 
