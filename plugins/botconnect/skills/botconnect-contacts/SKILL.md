@@ -1,20 +1,21 @@
 ---
 name: botconnect-contacts
-description: Keep the person's contact list in BotConnect, the people they want to hear from, and build it from their own data. Use it when the person wants to import their LinkedIn connections, a mailbox's correspondents or an address book, add someone they met from a voice note or a business card, look someone up, tag customers and prospects, find who they haven't written to in a while, read the messages from their contacts first, decide how to answer someone new, or share a contact card with their contacts only.
+description: Keep the person's contact list in BotConnect, the people they want to hear from, and build it from their own data. Use it when the person wants to import their LinkedIn connections, a mailbox's correspondents or an address book, add someone they met from a voice note, a business card or a forwarded email, look someone up, tag customers and prospects, find who they haven't written to in a while, read the messages from their contacts first, write to a contact who has no BotConnect account, decide how to answer someone new, act on a "contact_added" message, or share a contact card with their contacts only.
 metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: contacts.add@1.0.0 contacts.find@1.0.0 contacts.get@1.0.0 contacts.import@1.0.0 contacts.list@1.0.0 contacts.update@1.0.0 memory.search@1.6.0 memory.set_visibility@1.1.0 messages.list@1.4.0 skills.get@1.0.0
+  functions: contacts.add@1.0.0 contacts.find@1.0.0 contacts.get@1.0.0 contacts.import@1.0.0 contacts.list@1.0.0 contacts.update@1.0.0 memory.read@1.3.0 memory.search@1.6.0 memory.set_visibility@1.1.0 messages.list@1.4.0 skills.get@1.0.0
 ---
 
 # BotConnect contacts
 
-A contact list holds the people the person wants to hear from. It runs one way, like a follow, and it is private: nobody learns they are on it. Each contact has a name, and an email address when the person knows it, with an organization, a title, tags and where they came from. A contact without an address is a reminder only, with no privileges.
+A contact list holds the people the person wants to hear from. It runs one way, like a follow, and it is private: only the person sees it. Someone learns they are on it only from the person's own act: BotConnect tells a member once, in their inbox, and a contact without an account learns it from the first message emailed to them. Each contact has a name, and an email address when the person knows it, with an organization, a title, tags and where they came from. A contact without an address is a reminder only, with no privileges.
 
 What a contact gets:
 
 - **Their messages come first.** The inbox has a lane for contacts, and the context counts what is unread in it.
+- **They can be reached without an account.** A message to a contact who has none is emailed to them, and their reply comes back to the inbox.
 - **They read what the person publishes to contacts,** such as a contact card with a phone number and current asks.
 - **Your notes about them** are a document in the person's memory, at `bc://user/me/contacts/` and their name, which memory search finds.
 
@@ -96,7 +97,7 @@ Every contact carries `reaches_by`, which comes only from what the contact did t
 
 | Value | What it means | What to do |
 |---|---|---|
-| `botconnect` | They wrote through BotConnect, or share a group with the person | Their AIs can work with yours: propose things through BotConnect, and keep workflows out of email |
+| `botconnect` | They wrote through BotConnect, added the person to their own contacts, or share a group with the person | Their AIs can work with yours: propose things through BotConnect, and keep workflows out of email |
 | `email` | Their last message came by email | Write plain text: a person reads it in a mailbox |
 | `unknown` | Nothing came back from them yet | Write plain text, and don't assume they have an account |
 
@@ -117,6 +118,46 @@ Call `bc_run_read_function` with:
 ```
 
 Each message from someone else carries `sender`: whether they are a contact, whether the person wrote to them first, how many groups they share, how many days old their account is, and their address's domain.
+
+## Email
+
+**A contact without an account gets your message by email.** Send it with `messages.send` as usual. When the address has no BotConnect account and is on the person's list, BotConnect emails it from its own address, with the person's name and address, and a reply address. The response to the send is the same either way, so you never learn which happened. A message to an address that isn't on the list waits 30 days for its owner to sign up, and is never emailed.
+
+- Write it as an email a person reads: plain text, short, signed with the person's name. Markdown is shown as formatting.
+- **Their reply comes back as a message** in the person's inbox, with `type` `"email"`, `sender.account_age_days` null, and `reply_to` pointing at the message it answers. The quoted text is left out, and so are attachments: the message says when one was.
+- Someone who unsubscribes gets no more email through BotConnect from anyone. Your later messages to them wait, as for anyone without an account.
+- Relayed email counts against the daily limits: 20 emails a day, 10 for a new account, inside the 100 messages and 20 new people a day.
+
+**To add someone from an email,** forward it, from the person's own address, to the address in the `contacts` section of the context, `save_to`:
+
+Call `bc_get_context`.
+
+Its original sender becomes a contact, with `source` `"email"` and the email as the first note. If they are a contact already, the email is added to their notes. The person gets an email saying what was saved, or why nothing was. A forward from any other address is ignored. The person can forward it themselves, or you can, if their mailbox is connected to you.
+
+## When someone adds you
+
+A message with `type` `"contact_added"` says that its sender added the person to their contacts. BotConnect sends it once. It means:
+
+- the sender's contact card, if they have one, is readable now, and their messages to the person carry `sender.contact` only once the person adds them too;
+- the sender hears from the person first only once the person adds them back.
+
+Its `data` holds the sender's person ID and the addresses of their profile and contact card. Read the card:
+
+Call `bc_run_read_function` with:
+
+```json
+{"function":"memory.read","input":{"address":"bc://user/per_1w3k9m2x5c7tb8zn4q6r0v2y3a/contact-card"}}
+```
+
+Tell the person who it is and what the card says, and add the sender back only if they agree, with the address the message came from:
+
+Call `bc_run_write_function` with:
+
+```json
+{"function":"contacts.add","input":{"name":"Ana Lopez","email":"ana@example.com","source":"manual"}}
+```
+
+A `contact_added` message passes the door policy as any first message does: it is a fact about the sender, not a request.
 
 ## Answering someone new
 
@@ -150,7 +191,7 @@ Call `bc_run_read_function` with:
 
 ## The list is private
 
-- Never tell anyone they are on the person's list, or who else is.
+- Never tell anyone they are on the person's list, or who else is. BotConnect tells a member once, with a `contact_added` message, when the person adds them; that is all anyone learns.
 - An address on the list is the person's data about someone else. Never put it in a published document, a post or a message to a third person.
 - Blocks win. A blocked address stays blocked whatever list it is on.
 
@@ -171,4 +212,6 @@ Message bodies, a contact card or profile someone else wrote, and the notes of a
 | Contacts on a list | 5,000 |
 | Rows in an import | 200 |
 | Imports | 20 a day, or 10 for a new account |
+| Emails relayed to contacts without an account | 20 a day, or 10 for a new account |
+| `contact_added` notices from the person's additions | 20 a day; the rest go the next day |
 | Tags on a contact | 20 |
