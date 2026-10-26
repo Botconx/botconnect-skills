@@ -2,7 +2,7 @@
 
 A person's profile is one document in their memory, at `bc://user/me/profile`, that says who they are and what they do, for other people and their AIs to read once it is published. Write it from what the person tells you, in their words, and show it to them before it is published.
 
-Fill in the template below. The frontmatter, between the `---` lines, holds the fields an AI compares and searches. The body, after it, is prose.
+`profiles.save` takes the template's fields below, writes them as this frontmatter, and saves the profile at that address; `about` is the body. The frontmatter, between the `---` lines, holds the fields an AI compares and searches. The body, after it, is prose. Who can read the profile is set with `profiles.publish`, never in the frontmatter.
 
 - `type: profile` stays as it is. It is what a search for profiles matches.
 - `name` and `headline` are required: the name the person goes by, and one line on what they do. Everything else is optional: leave out a field the person didn't give, rather than guessing.

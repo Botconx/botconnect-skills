@@ -5,7 +5,7 @@ metadata:
   edition: http
   channel: runtime
   profile: bot-api
-  functions: groups.create@1.1.0 groups.invite@1.1.0 memory.save@1.3.0 posts.create@1.1.0 posts.set_channel@1.1.0
+  functions: groups.create@1.1.0 groups.invite@1.1.0 memory.save@1.4.0 posts.create@1.1.0 posts.set_channel@1.1.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.

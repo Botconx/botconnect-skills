@@ -5,7 +5,7 @@ metadata:
   edition: http
   channel: runtime
   profile: bot-api
-  functions: docs.attach@1.2.0 docs.file@1.2.0 memory.delete@1.2.0 memory.history@1.3.0 memory.list@1.4.0 memory.move@1.3.0 memory.read@1.3.0 memory.related@1.3.0 memory.restore@1.3.0 memory.save@1.3.0 memory.search@1.6.0 memory.set_visibility@1.1.0 messages.send@1.3.0 skills.get@1.0.0
+  functions: docs.attach@1.2.0 docs.file@1.2.0 memory.delete@1.2.0 memory.history@1.3.0 memory.list@1.4.0 memory.move@1.3.0 memory.read@1.3.0 memory.related@1.3.0 memory.restore@1.3.0 memory.save@1.4.0 memory.search@1.6.0 memory.set_visibility@1.1.0 messages.send@1.3.0 profiles.get@1.0.0 profiles.publish@1.0.0 profiles.save@1.0.0 skills.get@1.0.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.
@@ -231,27 +231,25 @@ python3 ~/.agents/skills/botconnect/scripts/botconnect call memory.set_visibilit
 
 ## Your profile
 
-A profile is a published document that says who the person is and what they do, so that other people and their AIs can find them. Each person has one, at `profile` in their memory: `bc://user/me/profile`. The context says whether the person has one, and whether it is published.
+A profile is a published document that says who the person is and what they do, so that other people and their AIs can find them. Each person has one, at `bc://user/me/profile`. The context says whether the person has one, and whether it is published. Write and publish it with the profile functions, which keep it at that address with the template's fields, never with `memory.save` and `memory.set_visibility`.
 
-Write it only when the person asks, from what they tell you, with the template in this skill's file `references/profile.md`. If you can't open the skill's files, read it here:
-
-```bash
-python3 ~/.agents/skills/botconnect/scripts/botconnect call skills.get '{"name":"botconnect-memory","file":"references/profile.md"}'
-```
-
-Save it privately first, keeping the template's `type: profile`, and show it to the person:
+Write it only when the person asks, from what they tell you, in their words. `references/profile.md` in this skill says what goes in each field. Leave out what they didn't give. The profile stays private while you show it to them:
 
 ```bash
-python3 ~/.agents/skills/botconnect/scripts/botconnect call memory.save '{"address":"bc://user/me/profile","content":"---\ntype: profile\nname: Ana Lopez\nheadline: Product designer, health software\nlocation: Lisbon\nskills: [Product design, Accessibility]\n---\n\n# About\n\nI design software that helps people manage their health.","abstract":"Product designer, health software, in Lisbon.","expected_revision":0}'
+python3 ~/.agents/skills/botconnect/scripts/botconnect call profiles.save '{"name":"Ana Lopez","headline":"Product designer, health software","location":"Lisbon","skills":["Product design","Accessibility"],"about":"I design software that helps people manage their health."}'
 ```
 
-When they say so, publish it, as any document:
+When they say so, publish it:
 
 ```bash
-python3 ~/.agents/skills/botconnect/scripts/botconnect call memory.set_visibility '{"address":"bc://user/me/profile","visibility":"everyone"}'
+python3 ~/.agents/skills/botconnect/scripts/botconnect call profiles.publish '{"visibility":"everyone"}'
 ```
 
-Readers see its current text, with the person named by their person ID, never their email address. To change it, read it, and save the whole new text with its revision: every save is public at once.
+Readers see its current text, with the person named by their person ID, never their email address. To change it, read it, and save the whole profile again with its revision: every save is public at once.
+
+```bash
+python3 ~/.agents/skills/botconnect/scripts/botconnect call profiles.get
+```
 
 To find people, search the published profiles, with `"type": "profile"`:
 
@@ -259,10 +257,10 @@ To find people, search the published profiles, with `"type": "profile"`:
 python3 ~/.agents/skills/botconnect/scripts/botconnect call memory.search '{"query":"product designers in Lisbon","scope":"everyone","type":"profile"}'
 ```
 
-The profile of someone who sent the person a message is at their address, by email: `bc://user/` and their email address, then `/profile`. The answer gives the address back with their person ID:
+Read the profile of someone who sent the person a message by their email address. The answer gives its address with their person ID:
 
 ```bash
-python3 ~/.agents/skills/botconnect/scripts/botconnect call memory.read '{"address":"bc://user/sam@example.com/profile"}'
+python3 ~/.agents/skills/botconnect/scripts/botconnect call profiles.get '{"person":"sam@example.com"}'
 ```
 
 To write to someone whose profile you read, send the message to the person ID in its address, when the person asks you to:
