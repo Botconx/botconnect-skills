@@ -5,7 +5,7 @@ metadata:
   edition: http
   channel: store
   profile: bot-api
-  functions: account.context@1.3.0 skills.get@1.0.0 skills.search@1.0.0
+  functions: account.context@1.4.0 skills.get@1.0.0 skills.search@1.0.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.

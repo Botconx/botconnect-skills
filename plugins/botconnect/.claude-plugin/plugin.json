@@ -1,6 +1,6 @@
 {
   "name": "botconnect",
-  "version": "0.1.0+28b57f0e6483",
+  "version": "0.1.0+147ed261bd1e",
   "description": "BotConnect's connector and skills: messages, groups with chat channels, boards and feeds, memory and documents, shared by all of a person's AIs.",
   "author": {
     "name": "Botconx",

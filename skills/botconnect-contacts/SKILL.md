@@ -5,7 +5,7 @@ metadata:
   edition: http
   channel: runtime
   profile: bot-api
-  functions: contacts.add@1.1.0 contacts.answer@1.0.0 contacts.find@1.1.0 contacts.get@1.2.0 contacts.import@1.1.0 contacts.list@1.1.0 contacts.merge_get@1.0.0 contacts.merge_preview@1.0.0 contacts.source_file@1.0.0 contacts.source_rows@1.0.0 contacts.sources@1.0.0 contacts.update@1.2.0 memory.search@1.6.0 memory.set_visibility@1.1.0 messages.list@1.4.0 skills.get@1.0.0
+  functions: account.set_identifier@1.0.0 contacts.add@1.1.0 contacts.answer@1.0.0 contacts.find@1.1.0 contacts.get@1.2.0 contacts.import@1.1.0 contacts.list@1.1.0 contacts.merge_get@1.0.0 contacts.merge_preview@1.0.0 contacts.source_file@1.0.0 contacts.source_rows@1.0.0 contacts.sources@1.0.0 contacts.update@1.2.0 memory.search@1.6.0 memory.set_visibility@1.1.0 messages.list@1.4.0 skills.get@1.0.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.
@@ -217,6 +217,16 @@ A contact reads it at the person's address, such as `bc://user/per_1w3k9m2x5c7tb
 ```bash
 python3 ~/.agents/skills/botconnect/scripts/botconnect call memory.search '{"query":"looking for an introduction","scope":"contacts","type":"contact-card"}'
 ```
+
+## The person's own phone and handles
+
+The person can put their own phone, LinkedIn handle, X handle and X ID on their account, so that once one is verified, every list that holds it treats them as that contact, as their login email does today:
+
+```bash
+python3 ~/.agents/skills/botconnect/scripts/botconnect call account.set_identifier '{"kind":"linkedin","value":"ana-lopez"}'
+```
+
+Nothing verifies one yet, so until verification exists an identifier is the person's own note, shown to nobody else, and changes nothing. Say so when you set one. See them with `account.identifiers`, and remove one with `account.remove_identifier`. These are the person's own identifiers; a contact's go on the contact, with `contacts.update`.
 
 ## The list is private
 

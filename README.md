@@ -45,4 +45,4 @@ The same skills are on the website: https://botconnect.co/skills/http/index.json
 
 ## Version
 
-Catalog 2152f67ee115.
+Catalog 2c59d41d4333.
