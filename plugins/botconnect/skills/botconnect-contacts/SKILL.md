@@ -66,7 +66,7 @@ Call `bc_run_read_function` with:
 {"function":"contacts.sources"}
 ```
 
-Preview the merge. It reads every current source and the list as it is, and takes a minute or so:
+Preview the merge. It reads every current source and the list as it is, and is usually ready in under 30 seconds, so read it after 10:
 
 Call `bc_run_write_function` with:
 
@@ -80,7 +80,12 @@ Call `bc_run_read_function` with:
 {"function":"contacts.merge_get"}
 ```
 
-Show the person what it would do: the new contacts, the contacts it updates, records gone from their source, whose contact stays, and records it leaves out because they can only be reached at a role address such as `info@`, with a few of each. Then ask its questions, a few at a time: whether two records are the same person, or whether to keep someone with no name. You may say what you think from each question's `a`, `b`, `reason` and `suggested`, but the person decides. Save their answers, which every later merge follows:
+Show the person what it would do: the new contacts, the contacts it updates, records gone from their source, whose contact stays, and records it leaves out because they can only be reached at a role address such as `info@`, with a few of each. Then answer its questions yourself, from each question's `a`, `b`, `reason` and `suggested`:
+
+- **Same person?** Most records that share a name are the same person, so answer `same` unless they clearly describe different people, such as two different LinkedIn profiles, or different careers in different places. When unsure, answer `same`.
+- **Keep this contact?** A record with no name but something more, such as a phone: keep it when it looks like someone the person knows.
+
+Ask the person only about the few you can't judge, at most ten, and tell them how you answered the rest. Send many answers in one call. Every later merge follows them:
 
 Call `bc_run_write_function` with:
 
