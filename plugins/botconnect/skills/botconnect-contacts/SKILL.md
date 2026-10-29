@@ -1,11 +1,11 @@
 ---
 name: botconnect-contacts
-description: Keep the person's contact list in BotConnect, the people they want to hear from, and build it from their own data. Use it when the person wants to import their LinkedIn connections, a mailbox's correspondents or an address book, add someone they met from a voice note, a business card or a forwarded email, keep someone's phone numbers, addresses and LinkedIn or X handles, look someone up, tag customers and prospects, find who they haven't written to in a while, read the messages from their contacts first, write to a contact who has no BotConnect account, decide how to answer someone new, or share a contact card with their contacts only.
+description: Keep the person's contact list in BotConnect, the people they want to hear from, and build it from their own data. Use it when the person wants to send their LinkedIn export, Google Contacts, who they follow on X or a mailbox's correspondents, merge them into one list without duplicates, answer the merge's questions, split two people merged by mistake, add someone they met from a voice note, a business card or a forwarded email, keep someone's phone numbers, addresses and LinkedIn or X handles, look someone up, tag customers and prospects, find who they haven't written to in a while, read the messages from their contacts first, write to a contact who has no BotConnect account, decide how to answer someone new, or share a contact card with their contacts only.
 metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: contacts.add@1.1.0 contacts.find@1.1.0 contacts.get@1.1.0 contacts.import@1.1.0 contacts.list@1.1.0 contacts.update@1.1.0 memory.search@1.6.0 memory.set_visibility@1.1.0 messages.list@1.4.0 skills.get@1.0.0
+  functions: contacts.add@1.1.0 contacts.answer@1.0.0 contacts.find@1.1.0 contacts.get@1.2.0 contacts.import@1.1.0 contacts.list@1.1.0 contacts.merge_get@1.0.0 contacts.merge_preview@1.0.0 contacts.source_rows@1.0.0 contacts.sources@1.0.0 contacts.update@1.2.0 contacts.upload_link@1.0.0 memory.search@1.6.0 memory.set_visibility@1.1.0 messages.list@1.4.0 skills.get@1.0.0
 ---
 
 # BotConnect contacts
@@ -23,29 +23,78 @@ What a contact gets:
 
 ## Build the list from the person's own data
 
-You read the data; BotConnect stores the list. **Show the person who you are about to add, and import only once they approve the list.** Every import of the same rows again changes nothing, so a file can be imported in parts, or again after the person edits it.
+Each place the person keeps people, such as LinkedIn, Google Contacts, who they follow on X, their mailbox or a phone's address book, becomes one **source** in BotConnect, sent by whichever of their AIs can reach it. BotConnect keeps one current version of each, and merges them all into one list without duplicates: the same person from LinkedIn and Google is one contact with both. Sources from every AI of the person land in one place, so you never need another AI's files. Send what you are good at: a mailbox or Google Contacts when you have that connector, who they follow on X when you read X, and otherwise an export file the person downloads. Nobody is told they are in a source or on the list.
 
-### LinkedIn
+### Export files
 
-LinkedIn's API gives nobody their connections, so the person downloads their own data: in LinkedIn's settings, under data privacy, they ask for a copy of their data and choose connections. LinkedIn emails them a file. Its `Connections.csv` has the columns `First Name`, `Last Name`, `URL`, `Email Address` (only when the connection allowed it), `Company`, `Position` and `Connected On`. Never sign in to LinkedIn for the person or scrape it.
+Tell the person how to get the file. Never sign in to a site for them or scrape it.
 
-Import in batches of 200 rows, with the profile URL as each row's `source_id`. BotConnect takes the LinkedIn handle from it, so a row without an address is still found again, and the same person from another source becomes one contact:
+- **LinkedIn** gives nobody their connections through its API. In LinkedIn's settings, under data privacy, the person asks for a copy of their data, with connections, or the whole archive, which also counts their LinkedIn messages. LinkedIn emails them a zip within a day. Send the zip as it is, or its `Connections.csv`.
+- **Google Contacts**: on contacts.google.com, export, as a Google CSV. A phone's address book syncs with it.
+- **A vCard file** (`.vcf`), from a phone or a mail app.
+- **X**: the accounts they follow, as a CSV from an export tool, with each account's numeric ID.
+
+In ChatGPT, the person can attach the file to the chat, and you pass it to `contacts.source_file` as its `file`. BotConnect reads it at once, says how many people it found, and refuses a file it can't read. Elsewhere, or when the attachment doesn't reach the function, get a link to a BotConnect page where the person uploads the file, and give it to them. It lasts 30 minutes and works only for them, signed in:
+
+Call `bc_run_read_function` with:
+
+```json
+{"function":"contacts.upload_link"}
+```
+
+### Rows from a connector
+
+What you read from a connector rather than a file, you send as rows, up to 200 a call: the first call starts a draft, later ones add to it, and `complete: true` makes it the source's current version. Give each row every name, address, phone and handle you have, and a `record_id` that stays the same each time, such as Google Contacts' `resourceName`, when the connector has one.
+
+**A mailbox:** choose the people the person exchanged real replies with in the last year: someone who wrote in a thread that the person then answered. Leave out newsletters, notifications, receipts, mailing lists and addresses such as `no-reply@`. Take names from the `Name <address> wrote:` lines in the person's replies, or from a `first.last@` address. Note how many replies each exchanged, and when the last was:
 
 Call `bc_run_write_function` with:
 
 ```json
-{"function":"contacts.import","input":{"source":"linkedin","rows":[{"name":"Ana Lopez","email":"ana@example.com","organization":"Lisbon Labs","title":"Head of design","source_id":"linkedin.com/in/ana-lopez"},{"name":"Sam Rivera","organization":"Rivera Studio","source_id":"linkedin.com/in/sam-rivera"}]}}
+{"function":"contacts.source_rows","input":{"kind":"email","start":true,"rows":[{"name":"Ana Lopez","emails":["ana@example.com"],"notes":"12 replies since January","last_contact_at":"2026-10-20T09:30:00Z"}],"complete":true}}
 ```
 
-The answer counts the rows added, updated, unchanged and refused, and gives each refusal's row and reason.
+Who the person follows on X is `"kind": "x"`, with each account's `x` handle and `x_id`. Anything else, such as a calendar's attendees, is `"kind": "other"` with a `label`.
 
-### A mailbox
+### Merge the sources
 
-When the person's mailbox is connected to you, read it and choose **the people they exchanged real replies with in the last year,** ranked by how often and how recently. Leave out newsletters, notifications, receipts, mailing lists and addresses such as `no-reply@`. Show the person the list, with how many messages each exchanged, then import the ones they keep with `"source": "email"`.
+List the sources, and offer to merge when one isn't merged yet. The context's `contacts` section names those too:
 
-### Google Contacts, a phone's address book, a vCard file
+Call `bc_run_read_function` with:
 
-Google Contacts exports a CSV with up to four email addresses and several phone numbers for each person; a phone's address book syncs with it. Give each row all of them, with `"source": "google"`. Phone numbers are stored in international form: one that starts with `+` is read as it is, and one without a country code is read in `phone_country`, `US` unless you give another. Leave out rows with no name and no way to reach the person.
+```json
+{"function":"contacts.sources"}
+```
+
+Preview the merge. It reads every current source and the list as it is, and takes a minute or so:
+
+Call `bc_run_write_function` with:
+
+```json
+{"function":"contacts.merge_preview"}
+```
+
+Call `bc_run_read_function` with:
+
+```json
+{"function":"contacts.merge_get"}
+```
+
+Show the person what it would do: the new contacts, the contacts it updates, records gone from their source, whose contact stays, and records it leaves out because they can only be reached at a role address such as `info@`, with a few of each. Then ask its questions, a few at a time: whether two records are the same person, or whether to keep someone with no name. You may say what you think from each question's `a`, `b`, `reason` and `suggested`, but the person decides. Save their answers, which every later merge follows:
+
+Call `bc_run_write_function` with:
+
+```json
+{"function":"contacts.answer","input":{"answers":[{"question":"q3f9a1c2b7e","answer":"same"}]}}
+```
+
+Preview again so the answers count, and once the person approves, apply it with `contacts.merge_apply` and the preview's `id`, such as `mrg_8kq2m4x9c7tb3wzn`. A large merge takes a few minutes, which `contacts.merge_get` shows. People whose questions are still open stay out until they are answered. A field the person or an AI set with `contacts.update` is never changed by a merge.
+
+Tell the person what changed. When a merge joined two people wrongly, `contacts.get` lists the `records` a contact holds, such as `linkedin:sam-rivera-42`, and `contacts.split` with the contact and those record IDs takes them out into a contact of their own, for good.
+
+### A few people you read yourself
+
+For a handful of people, such as the attendees of one meeting, import them directly, with their source, after the person approves the list. Importing the same rows again changes nothing:
 
 Call `bc_run_write_function` with:
 
@@ -53,15 +102,7 @@ Call `bc_run_write_function` with:
 {"function":"contacts.import","input":{"source":"google","phone_country":"US","rows":[{"name":"Ana Lopez","emails":["ana@example.com","ana@lisbonlabs.example"],"phones":["(415) 555-0123"],"organization":"Lisbon Labs"}]}}
 ```
 
-### X
-
-From the accounts the person follows on X, give each row the handle and the numeric ID, with `"source": "x"`. Mark companies, brands and other accounts that aren't a person with `"kind": "organization"`.
-
-Call `bc_run_write_function` with:
-
-```json
-{"function":"contacts.import","input":{"source":"x","rows":[{"name":"Sam Rivera","x":"samrivera","x_id":"1845964698383966208"}]}}
-```
+Phone numbers are stored in international form: one that starts with `+` is read as it is, and one without a country code is read in `phone_country`, `US` unless you give another. Mark companies, brands and other accounts that aren't a person with `"kind": "organization"`.
 
 ### A voice note at a meetup
 
@@ -225,6 +266,11 @@ Message bodies, a contact card or profile someone else wrote, and the notes of a
 | Contacts on a list | 50,000 |
 | Rows in an import | 200 |
 | Imports | 100 a day, or 50 for a new account |
+| Sources | 10, one of each kind, and up to 5 others |
+| People in a source | 50,000 |
+| A file | 4 MB as sent, zipped or not, and 10 MB unzipped |
+| Files sent, and drafts completed | 20 a day, or 10 for a new account |
+| Merges previewed | 10 a day, or 5 for a new account |
 | Email addresses, phones, websites on a contact | 10, 10, 5 |
 | Emails relayed to contacts without an account | 20 a day, or 10 for a new account |
 | Tags on a contact | 20 |
