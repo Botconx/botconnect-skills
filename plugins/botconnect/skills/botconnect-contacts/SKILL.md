@@ -58,7 +58,7 @@ Who the person follows on X is `"kind": "x"`, with each account's `x` handle and
 
 ### Merge the sources
 
-List the sources, and offer to merge when one isn't merged yet. The context's `contacts` section names those too:
+List the sources. When one isn't merged yet, ask the person whether more sources are coming before you preview a merge, and preview once they are all in: each preview reads every current source, and the person has 10 a day. The context's `contacts` section names the sources not merged yet too:
 
 Call `bc_run_read_function` with:
 
