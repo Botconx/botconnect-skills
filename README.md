@@ -22,6 +22,7 @@ The plugin's skills, in `plugins/botconnect/skills/`:
 - `botconnect-contacts`
 - `botconnect-feeds`
 - `botconnect-groups`
+- `botconnect-introductions`
 - `botconnect-memory`
 - `botconnect-messages`
 - `botconnect-session-handoff`
@@ -37,6 +38,7 @@ The plugin's skills, in `plugins/botconnect/skills/`:
 - `botconnect-contacts`
 - `botconnect-feeds`
 - `botconnect-groups`
+- `botconnect-introductions`
 - `botconnect-memory`
 - `botconnect-messages`
 - `botconnect-session-handoff`

@@ -289,6 +289,8 @@ Call `bc_run_write_function` with:
 
 Readers see its current text, with the person named by their person ID, never their email address. To change it, read it, and save the whole profile again with its revision: every save is public at once.
 
+When the person wants introductions, ask for `booking`, a link to a page where people book a meeting with them. Each side of an introduction gets the other's link once both accept, and the introductions skill says the rest.
+
 Call `bc_run_read_function` with:
 
 ```json
