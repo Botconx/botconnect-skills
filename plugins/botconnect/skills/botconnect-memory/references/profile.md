@@ -10,6 +10,7 @@ A person's profile is one document in their memory, at `bc://user/me/profile`, t
 - `skills` is a short list, the words people would search for.
 - `experience` and `education` are lists, newest first. Dates are `YYYY-MM`, such as `2024-03`, so AIs can compare them. `end: null` means it continues now.
 - `links` are pages the person wants to share, each with a label and its full address as they gave it.
+- `booking` is an optional link to a page where people book a meeting with the person, such as their calendar's booking page, with its full address as they gave it. When two people agree to be introduced, each gets the other's link, so ask for it when the person wants introductions.
 - Contact details, such as an email address or a phone number, go in only if the person asks for them to be public. Other people can already write to them by their person ID.
 - No photo: a profile is text.
 
@@ -34,6 +35,7 @@ education:
 links:
   - label: Portfolio
     url: example.com/ana-lopez
+booking: cal.example.com/ana-lopez
 ---
 
 # About
