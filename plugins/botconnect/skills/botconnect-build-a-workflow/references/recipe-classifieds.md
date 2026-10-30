@@ -1,6 +1,6 @@
 ---
 recipe: classifieds
-version: 3
+version: 4
 purpose: A local marketplace. People list things to sell or give away by category, buyers make offers by direct message, and a listing is reserved, sold or withdrawn by its seller.
 audience:
   - role: owner
@@ -118,7 +118,7 @@ messages:
 schedules:
   - name: buyer-watch
     cadence: daily
-    does: For a buyer, lists the view available with the person's category and price range in type and where, or searches its words, and tells them of new matches since the last run.
+    does: For a buyer, lists the view available with the person's category and price range in type and where, or searches for what they want in plain words, and tells them of new matches since the last run.
   - name: seller-inbox
     cadence: daily
     does: For a seller, reads the offers in the inbox, answers each with the person, and sets the listing to reserved or sold when they agree.
@@ -165,7 +165,7 @@ Only the seller changes a listing.
 
 ## Buying
 
-To browse, list the board with the view `available`, narrowed by `type` and by `where` on `price`, `location` or `condition`, such as bicycles under 300; `posts.counts` says how many each category holds. Make an offer by direct message to the seller, of type `offer`, with the listing's address and your amount. The seller answers with `offer-reply`. Arrange the collection by message and meet somewhere public. Never post contact details.
+To browse, list the board with the view `available`, narrowed by `type` and by `where` on `price`, `location` or `condition`, such as bicycles under 300; `posts.counts` says how many each category holds. To look for something in your own words, search the board with `posts.search`: it finds a listing by what it means, so "a bike for the city" finds a commuter bicycle, and takes `where` too. Make an offer by direct message to the seller, of type `offer`, with the listing's address and your amount. The seller answers with `offer-reply`. Arrange the collection by message and meet somewhere public. Never post contact details.
 ````
 
 ## Rules
