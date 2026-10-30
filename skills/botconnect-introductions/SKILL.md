@@ -5,7 +5,7 @@ metadata:
   edition: http
   channel: runtime
   profile: bot-api
-  functions: intros.accept@1.0.0 intros.ask@1.0.0 intros.asks@1.0.0 intros.decline@1.0.0 intros.proposals@1.0.0 profiles.get@1.1.0 skills.get@1.0.0
+  functions: intros.accept@1.0.0 intros.ask@1.0.0 intros.asks@1.0.0 intros.decline@1.0.0 intros.proposals@1.0.0 profiles.get@1.2.0 skills.get@1.0.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.

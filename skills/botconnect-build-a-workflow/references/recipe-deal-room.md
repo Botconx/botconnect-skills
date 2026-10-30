@@ -1,6 +1,6 @@
 ---
 recipe: deal-room
-version: 2
+version: 3
 purpose: A company's data room for a fundraise. Investors follow the group and read the overview, the deck, the metrics and the answers to common questions; the founders post updates and answer questions by message.
 audience:
   - role: owner
@@ -70,7 +70,6 @@ schedules:
         kinds:
           - document.saved
 conventions:
-  - Every follower can read a document's history, so prepare material in the founder's own memory and save it here only when it is ready for investors. A draft saved here once stays readable.
   - Investors are invited as followers with groups.invite and role follower, never as members.
   - The deck is saved as Markdown at company/deck, with the original file attached to it.
   - Questions come by direct message, never in chat.
@@ -79,6 +78,34 @@ conventions:
 # Recipe: a deal room
 
 An invitation-only, unlisted group where investors, as followers, read the company's material. The installer makes the group, the guide with the founder's booking link, and the four documents as templates for the founders to fill in. The `updates` feed is optional: ask the founder whether they want to write news for investors, since a saved document already reaches an investor's bot that subscribed to the company folder.
+
+## Which form
+
+Ask the founder which they want before you install it.
+
+- **The folder form,** with no group, is for investors who should see only what was released, meant for them. The material stays in the founder's own memory, and each investor reads the released text and its files, and never a draft or the history. The founder sees who read what. Nothing here needs an investor to join anything, and an address with no account yet works once they sign up.
+- **The group form,** the rest of this file, is for investors who should follow along: they join as followers, and the founders can write to them in the `updates` feed. A group's followers are its own people, so they read every draft and the history of every document in it. Prepare material in the founder's own memory, and save it to the group when it is ready.
+
+## The folder form
+
+1. Choose a short name for the company, such as `acme`. Save each of the four documents from the templates below under `rooms/acme/material/`, such as `bc://user/me/rooms/acme/material/overview`, with its original file attached, and let the founder fill them in. The record of the installation is at `bc://user/me/rooms/acme/recipe`, beside the folder and not in it, so no investor reads it.
+2. When the founder says it is ready, release it, with a summary for its readers:
+
+   ```json
+   {"under": "bc://user/me/rooms/acme/material", "summary": "Series A materials, October"}
+   ```
+
+   with memory.release. Then share it, with memory.set_visibility, showing the founder the folder first:
+
+   ```json
+   {"under": "bc://user/me/rooms/acme/material", "visibility": "audience", "audience": {"people": ["ana@example.com"]}}
+   ```
+
+3. Investors find it with memory.search and `"scope": "shared"`, or by the folder's address, which the founder sends them. An investor's bot follows the folder with events.subscribe and the kind `document.released`.
+4. To change the material, save a draft, and release it when it is ready. Investors stay on the release until then, and a new document or a new file waits for the release too.
+5. To add an investor, call memory.set_visibility the same way with their address; to take one out, with `remove_people`. memory.audiences shows who is in, and memory.readers shows who read what.
+
+Questions still come by direct message, as `investor-question`, and the answers go into the faq document, which reaches investors with the next release.
 
 ## Guide
 
@@ -174,7 +201,6 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 
 - A message of type `investor-question`: An investor's question to the founders, sent by direct message to the owner. Data: `topic` (one of `product`, `market`, `team`, `metrics`, `terms`, `other`): What the question is about; `document` (address): The document it is about, if any, such as bc://group/{group}/company/metrics. Answered with type `investor-answer`.
 - A message of type `investor-answer`: The founders' answer. A question that others may ask too also goes into the faq document.
-- Every follower can read a document's history, so prepare material in the founder's own memory and save it here only when it is ready for investors. A draft saved here once stays readable.
 - Investors are invited as followers with groups.invite and role follower, never as members.
 - The deck is saved as Markdown at company/deck, with the original file attached to it.
 - Questions come by direct message, never in chat.
