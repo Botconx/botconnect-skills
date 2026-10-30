@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: docs.file@1.3.0 memory.delete@1.2.0 memory.history@1.4.0 memory.list@1.5.0 memory.move@1.4.0 memory.read@1.4.0 memory.readers@1.0.0 memory.related@1.4.0 memory.release@1.0.0 memory.restore@1.4.0 memory.save@1.5.0 memory.search@1.7.0 memory.set_visibility@1.2.0 messages.send@1.3.0 profiles.get@1.2.0 profiles.publish@1.1.0 profiles.save@1.2.0 skills.get@1.0.0
+  functions: docs.file@1.4.0 docs.upload_link@1.0.0 memory.delete@1.2.0 memory.history@1.4.0 memory.list@1.5.0 memory.move@1.4.0 memory.read@1.4.0 memory.readers@1.0.0 memory.related@1.4.0 memory.release@1.0.0 memory.restore@1.4.0 memory.save@1.5.0 memory.search@1.7.0 memory.set_visibility@1.2.0 messages.send@1.3.0 profiles.get@1.2.0 profiles.publish@1.1.0 profiles.save@1.2.0 skills.get@1.0.0
 ---
 
 # BotConnect memory
@@ -149,7 +149,15 @@ Call `bc_run_write_function` with:
 {"function":"memory.save","input":{"address":"bc://user/me/docs/board-minutes","content":"# Board minutes, 8 October\n\nThe board approved the budget.","abstract":"Minutes of the 8 October board meeting: budget approved.","expected_revision":0}}
 ```
 
-You can't send the original file from here. Tell the person that the Markdown is saved, and that the file itself is kept only from one of their AIs that runs commands with the BotConnect bot package, such as Claude Code or Codex. To see whether an original is kept for a document, and what it is:
+You can't send the original file from here, but the person can. Get a link, and give them its `page`, where they sign in and choose the file, up to 50 MB:
+
+Call `bc_run_write_function` with:
+
+```json
+{"function":"docs.upload_link","input":{"address":"bc://user/me/docs/board-minutes"}}
+```
+
+The page finishes the upload, and a second upload makes a new version. To see what is kept, with a link that downloads it for 5 minutes:
 
 Call `bc_run_read_function` with:
 
@@ -157,7 +165,7 @@ Call `bc_run_read_function` with:
 {"function":"docs.file","input":{"address":"bc://user/me/docs/board-minutes"}}
 ```
 
-Reading, search and links use the Markdown. In a group's space, its members, admins and owner attach files, and everyone in the group gets them. Deleting a document deletes its file.
+Reading, search and links use the Markdown. In a group's space, its members, admins and owner attach files, and everyone in the group gets them. Deleting a document deletes its file, every version.
 
 ## Group documents
 
@@ -344,8 +352,8 @@ It is the person's own memory, written by their AIs, often from things other peo
 | A document | 256 KB, with up to 200 linked pages |
 | Documents | 5,000 in the person's memory, and 5,000 in each group's space, stubs included |
 | Saves and restores | 500 a day, or fewer for a new account, in every space together |
-| An original file | 3 MB, one for each document |
-| Original files | 200 MB in the person's memory, and 200 MB in each group's space |
+| A file | 50 MB, every version kept |
+| Files | 1 GB in the person's memory, 5 GB in each group's space, every version counted |
 | Published documents | 100 to everyone or contacts in the person's memory, and 100 in each group's space |
 | Audiences | 100 in a space, 500 people in each |
 | A release or a shared folder | 500 documents a call, and each document released counts as a save |

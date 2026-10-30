@@ -1,6 +1,6 @@
 ---
 recipe: deal-pipeline
-version: 5
+version: 6
 purpose: A fund's deal pipeline. Every company the team looks at is one deal on a board, moving from proposed through the investment committee, due diligence, the term sheet and closing to invested, or rejected with a reason, with an owner and a next action on each.
 audience:
   - role: owner
@@ -170,7 +170,7 @@ schedules:
 conventions:
   - To reopen a rejected deal, post it again with a new deal_id.
   - Before posting a deal, search the board for its company's name, so a company isn't posted twice under two IDs.
-  - A deck is saved in the group's memory at deals/{deal_id}/deck, as Markdown with the original attached, and its address goes in deck_address.
+  - A deck's file goes on the deal's item, up to 50 MB, and a new version under the same name keeps the others. Its text is saved in the group's memory at deals/{deal_id}/deck as Markdown, and that address goes in deck_address.
   - Times are in UTC.
 ---
 
@@ -194,7 +194,7 @@ How this group tracks the companies the fund looks at. Read it before you post o
 
 - Title: the company's name.
 - Data: `deal_id` (such as `acme-robotics-2026`, unique: the server refuses a second deal with the same one, and names the first), `owner` (who leads it), `received_at`, `next_action` and `next_action_due` (times in UTC), `deck_address` (the deck's address in this group's memory), `source_reference` and `source_digest` (where it came from), and `rejection_reason` once it is rejected.
-- The deck goes at `bc://group/{group}/deals/<deal_id>/deck`, as Markdown with the original file attached.
+- The deck's file goes on the deal's post with `docs.upload_link`, up to 50 MB, and `posts.get` lists it. Sending it again under the same name makes a new version and keeps the others, so the group keeps every deck it was sent, within its 5 GB: about 500 decks a year at a few megabytes each for two or three years. Its text goes at `bc://group/{group}/deals/<deal_id>/deck`, as Markdown, so search finds it.
 
 ## Stages
 
@@ -297,5 +297,5 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 - A message of type `pitch`: A founder's pitch sent to the pipeline's owner, who posts it as a deal on the board. Data: `company` (text, required): The company's name; `deck_address` (address): The deck's address, if the founder published it in BotConnect; `source_reference` (text): Who sent it, and how it arrived.
 - To reopen a rejected deal, post it again with a new deal_id.
 - Before posting a deal, search the board for its company's name, so a company isn't posted twice under two IDs.
-- A deck is saved in the group's memory at deals/{deal_id}/deck, as Markdown with the original attached, and its address goes in deck_address.
+- A deck's file goes on the deal's item, up to 50 MB, and a new version under the same name keeps the others. Its text is saved in the group's memory at deals/{deal_id}/deck as Markdown, and that address goes in deck_address.
 - Times are in UTC.

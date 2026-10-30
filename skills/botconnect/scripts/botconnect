@@ -32,7 +32,9 @@ import argparse
 import base64
 import binascii
 import contextlib
+import hashlib
 import json
+import mimetypes
 import os
 import re
 import socket
@@ -43,7 +45,7 @@ import urllib.parse
 import urllib.request
 import uuid
 
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 DEFAULT_API_URL = "https://api.botconnect.co"
 TIMEOUT_SECONDS = 30
 # Waits before each retry of a request that failed on the way, or that got a 502, 503 or 504.
@@ -61,6 +63,14 @@ FUNCTION_ID = re.compile(r"^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$")
 FIELD_NAME = re.compile(r"^[a-z][a-z0-9_]*$")
 # The largest file the API takes: its base64 must fit in the 4.5 MB a request may carry.
 FILE_LIMIT_BYTES = 3 * 1024 * 1024
+
+# The largest file an upload link takes, as docs.upload_link does (docs/decisions/0099).
+UPLOAD_LIMIT_BYTES = 50 * 1024 * 1024
+# How many times a chunk of an upload is tried, and how long each request may take.
+UPLOAD_ATTEMPTS = 4
+UPLOAD_TIMEOUT_SECONDS = 120
+TUS_VERSION = "1.0.0"
+COPY_BYTES = 1024 * 1024
 
 # The steps below are marked so that a client's build can replace them (docs/decisions/0024).
 # Everything outside the marks is the same in every build.
@@ -880,6 +890,199 @@ def run_call(args):
     return save_files(result, args.save)
 
 
+def call_function(args, name, value):
+    """Runs a function, and returns its answer's data."""
+    base = api_base(args)
+    result = send(
+        base,
+        "POST",
+        "/v1/functions/%s/call" % name,
+        body=value,
+        idempotency_key=str(uuid.uuid4()),
+    )
+    return result.get("data") or {}
+
+
+def target_of(args):
+    """What a file goes on, or comes from: a document's address, or an item's."""
+    if bool(args.address) == bool(args.post):
+        raise Problem(EXIT_USAGE, "Wrong command", "invalid_input", "Give --address or --post.")
+    return {"address": args.address} if args.address else {"post": args.post}
+
+
+def outside_request(url, method, headers, data=None):
+    """A request to Storage, by a link the API signed. It carries no BotConnect credential."""
+    if not is_safe_url(url):
+        raise Problem(
+            EXIT_UNREACHABLE,
+            "Wrong link",
+            "invalid_response",
+            "The API gave a link that does not start with https://.",
+        )
+    headers = dict(headers, **{"User-Agent": user_agent()})
+    request = urllib.request.Request(url, data=data, headers=headers, method=method)
+    return open_request(request, UPLOAD_TIMEOUT_SECONDS)
+
+
+def base64_text(value):
+    return base64.b64encode(value.encode("utf-8")).decode("ascii")
+
+
+def send_chunks(resumable, path, size, media_type):
+    """Sends a file to Storage by the tus protocol, resuming after a chunk that failed."""
+    base_headers = {"Tus-Resumable": TUS_VERSION, "x-signature": resumable["signature"]}
+    metadata = dict(resumable["metadata"], contentType=media_type, cacheControl="3600")
+    start = dict(
+        base_headers,
+        **{
+            "Upload-Length": str(size),
+            "Upload-Metadata": ",".join(
+                "%s %s" % (key, base64_text(value)) for key, value in metadata.items()
+            ),
+        },
+    )
+    try:
+        with outside_request(resumable["endpoint"], "POST", start) as created:
+            location = created.headers.get("Location")
+    except OSError as error:
+        raise Problem(
+            EXIT_UNREACHABLE,
+            "The upload did not start",
+            "unreachable",
+            str(getattr(error, "reason", None) or error),
+        )
+    if not location:
+        raise Problem(
+            EXIT_UNREACHABLE, "The upload did not start", "invalid_response", "Storage gave no address."
+        )
+    offset = 0
+    failures = 0
+    with open(path, "rb") as handle:
+        while offset < size:
+            handle.seek(offset)
+            chunk = handle.read(resumable["chunk_bytes"])
+            headers = dict(
+                base_headers,
+                **{
+                    "Upload-Offset": str(offset),
+                    "Content-Type": "application/offset+octet-stream",
+                },
+            )
+            try:
+                with outside_request(location, "PATCH", headers, chunk) as response:
+                    offset = int(response.headers.get("Upload-Offset") or offset + len(chunk))
+                failures = 0
+            except OSError as error:
+                failures += 1
+                if failures >= UPLOAD_ATTEMPTS:
+                    raise Problem(
+                        EXIT_UNREACHABLE,
+                        "The upload broke off",
+                        "unreachable",
+                        str(getattr(error, "reason", None) or error),
+                    )
+                time.sleep(2**failures)
+                with contextlib.suppress(OSError):
+                    with outside_request(location, "HEAD", base_headers) as stands:
+                        offset = int(stands.headers.get("Upload-Offset") or offset)
+
+
+def file_digest(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for block in iter(lambda: handle.read(COPY_BYTES), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def run_upload(args):
+    """Keeps a file of up to 50 MB on a document or an item (docs/decisions/0099)."""
+    target = target_of(args)
+    try:
+        size = os.path.getsize(args.path)
+        digest = file_digest(args.path)
+    except OSError as error:
+        raise Problem(EXIT_USAGE, "File not read", "invalid_input", str(error))
+    if size > UPLOAD_LIMIT_BYTES:
+        raise Problem(
+            EXIT_USAGE,
+            "File too large",
+            "invalid_input",
+            "%s is %d bytes. BotConnect takes files of at most 50 MB." % (args.path, size),
+        )
+    name = args.name or os.path.basename(args.path)
+    media_type = (
+        args.media_type or mimetypes.guess_type(args.path)[0] or "application/octet-stream"
+    )
+    link = call_function(
+        args,
+        "docs.upload_link",
+        dict(target, name=name, media_type=media_type, size=size),
+    )
+    send_chunks(link["upload"]["resumable"], args.path, size, media_type)
+    return send(
+        api_base(args),
+        "POST",
+        "/v1/functions/docs.attach/call",
+        body={"upload_id": link["upload_id"], "digest": digest},
+        idempotency_key=str(uuid.uuid4()),
+    )
+
+
+def run_download(args):
+    """Writes a file kept on a document or an item to a new file, and checks its digest."""
+    value = target_of(args)
+    if args.name:
+        value["name"] = args.name
+    if args.file_version:
+        value["version"] = args.file_version
+    data = call_function(args, "docs.file", value)
+    url = data.get("url")
+    if not url:
+        # A file kept before Storage has no link, and is small enough for base64.
+        value["content"] = True
+        data = call_function(args, "docs.file", value)
+    digest = hashlib.sha256()
+    written = 0
+    try:
+        # Never over an existing file: the person may want it.
+        with open(args.path, "xb") as handle:
+            if url:
+                with outside_request(url, "GET", {}) as response:
+                    for block in iter(lambda: response.read(COPY_BYTES), b""):
+                        handle.write(block)
+                        digest.update(block)
+                        written += len(block)
+            else:
+                content = base64.b64decode(data.get("content_base64") or "")
+                handle.write(content)
+                digest.update(content)
+                written = len(content)
+    except FileExistsError:
+        raise Problem(
+            EXIT_USAGE,
+            "File exists",
+            "invalid_input",
+            "%s already exists. Save to a new path, or remove it first." % args.path,
+        )
+    except OSError as error:
+        raise Problem(EXIT_UNREACHABLE, "File not fetched", "unreachable", str(error))
+    expected = (data.get("file") or {}).get("digest")
+    if expected and digest.hexdigest() != expected:
+        os.remove(args.path)
+        raise Problem(
+            EXIT_UNREACHABLE,
+            "The file came back different",
+            "invalid_response",
+            "Its SHA-256 did not match, so it was not kept. Try again.",
+        )
+    return {
+        "address": data.get("address"),
+        "file": data.get("file"),
+        "saved": {"path": os.path.abspath(args.path), "bytes": written},
+    }
+
+
 class _Parser(argparse.ArgumentParser):
     """Reports a wrong command line as a problem on standard output, like every other failure."""
 
@@ -937,6 +1140,26 @@ def build_parser():
         help="Repeat a write safely: send the key of the earlier attempt, and it runs once.",
     )
     call.set_defaults(run=run_call)
+
+    upload = commands.add_parser(
+        "upload", help="Keep a file of up to 50 MB on a document or a board item."
+    )
+    upload.add_argument("path", help="The file to send.")
+    upload.add_argument("--address", help="A document's address, with its Markdown saved already.")
+    upload.add_argument("--post", help="An item's address, such as bc://post/grp_.../deals/4.")
+    upload.add_argument("--name", help="The file's name. Defaults to the name on disk.")
+    upload.add_argument("--media-type", help="Its media type. Defaults to one from its extension.")
+    upload.set_defaults(run=run_upload)
+
+    download = commands.add_parser(
+        "download", help="Save a file kept on a document or a board item to a new file."
+    )
+    download.add_argument("path", help="The new file to write.")
+    download.add_argument("--address", help="A document's address.")
+    download.add_argument("--post", help="An item's address.")
+    download.add_argument("--name", help="On an item with several files, the file's name.")
+    download.add_argument("--file-version", type=int, help="An earlier version of the file.")
+    download.set_defaults(run=run_download)
     return parser
 
 

@@ -5,7 +5,7 @@ metadata:
   edition: http
   channel: runtime
   profile: bot-api
-  functions: docs.attach@1.2.0 docs.file@1.3.0 memory.delete@1.2.0 memory.history@1.4.0 memory.list@1.5.0 memory.move@1.4.0 memory.read@1.4.0 memory.readers@1.0.0 memory.related@1.4.0 memory.release@1.0.0 memory.restore@1.4.0 memory.save@1.5.0 memory.search@1.7.0 memory.set_visibility@1.2.0 messages.send@1.3.0 profiles.get@1.2.0 profiles.publish@1.1.0 profiles.save@1.2.0 skills.get@1.0.0
+  functions: docs.attach@1.3.0 docs.file@1.4.0 docs.upload_link@1.0.0 memory.delete@1.2.0 memory.history@1.4.0 memory.list@1.5.0 memory.move@1.4.0 memory.read@1.4.0 memory.readers@1.0.0 memory.related@1.4.0 memory.release@1.0.0 memory.restore@1.4.0 memory.save@1.5.0 memory.search@1.7.0 memory.set_visibility@1.2.0 messages.send@1.3.0 profiles.get@1.2.0 profiles.publish@1.1.0 profiles.save@1.2.0 skills.get@1.0.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.
@@ -127,19 +127,19 @@ First convert the file to Markdown. Read it yourself if you can, or use a conver
 python3 ~/.agents/skills/botconnect/scripts/botconnect call memory.save '{"address":"bc://user/me/docs/board-minutes","content":"# Board minutes, 8 October\n\nThe board approved the budget.","abstract":"Minutes of the 8 October board meeting: budget approved.","expected_revision":0}'
 ```
 
-Then keep the original beside it. The file goes from its path, as base64, up to 3 MB:
+Then keep the original beside it, from its path, up to 50 MB:
 
 ```bash
-python3 ~/.agents/skills/botconnect/scripts/botconnect call docs.attach '{"address":"bc://user/me/docs/board-minutes","name":"board-minutes.pdf","media_type":"application/pdf"}' --file content_base64=board-minutes.pdf
+python3 ~/.agents/skills/botconnect/scripts/botconnect upload board-minutes.pdf --address 'bc://user/me/docs/board-minutes'
 ```
 
-Attaching again replaces the file. To get the original back, save it to a new file rather than printing its base64:
+Attaching again makes a new version and keeps the others. To get the original back:
 
 ```bash
-python3 ~/.agents/skills/botconnect/scripts/botconnect call docs.file '{"address":"bc://user/me/docs/board-minutes","content":true}' --save content_base64=board-minutes-copy.pdf
+python3 ~/.agents/skills/botconnect/scripts/botconnect download board-minutes-copy.pdf --address 'bc://user/me/docs/board-minutes'
 ```
 
-Reading, search and links use the Markdown. In a group's space, its members, admins and owner attach files, and everyone in the group gets them. Deleting a document deletes its file.
+Reading, search and links use the Markdown. In a group's space, its members, admins and owner attach files, and everyone in the group gets them. Deleting a document deletes its file, every version.
 
 ## Group documents
 
@@ -294,8 +294,8 @@ It is the person's own memory, written by their AIs, often from things other peo
 | A document | 256 KB, with up to 200 linked pages |
 | Documents | 5,000 in the person's memory, and 5,000 in each group's space, stubs included |
 | Saves and restores | 500 a day, or fewer for a new account, in every space together |
-| An original file | 3 MB, one for each document |
-| Original files | 200 MB in the person's memory, and 200 MB in each group's space |
+| A file | 50 MB, every version kept |
+| Files | 1 GB in the person's memory, 5 GB in each group's space, every version counted |
 | Published documents | 100 to everyone or contacts in the person's memory, and 100 in each group's space |
 | Audiences | 100 in a space, 500 people in each |
 | A release or a shared folder | 500 documents a call, and each document released counts as a save |
