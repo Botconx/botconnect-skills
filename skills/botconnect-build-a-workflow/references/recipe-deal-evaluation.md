@@ -1,6 +1,6 @@
 ---
 recipe: deal-evaluation
-version: 2
+version: 3
 purpose: A fund team's evaluation of the deals it is sent. Each deal is posted on a board with its documents in the group's memory, every member gives feedback in a reply with a recommendation, a confidence and concerns, and the deal's poster closes it once the team has answered.
 audience:
   - role: owner
@@ -34,6 +34,7 @@ channels:
           - name: decision_due
             kind: date
             required: true
+            indexed: true
             description: When the team decides
             enforced: true
           - name: memo
@@ -157,6 +158,7 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 - `deals`, type `deal`, field `deal_id` (text, required, unique): The deal's ID, such as acme-robotics-2026, which names its folder deals/acme-robotics-2026/.
 - `deals`, type `deal`, field `decision_due` (date, required): When the team decides.
 - `deals`, type `deal`, field `memo` (address): The memo's address, bc://group/{group}/deals/<deal_id>/memo.
+- `deals`, saved view `to-evaluate`, for posts.list and posts.counts: The deals waiting for feedback, soonest decision first. Statuses `evaluating`. Sorted by `decision_due`, ascending.
 
 ### Conventions
 
@@ -165,7 +167,6 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 - `deals`, type `feedback`, field `concerns` (text): The main risks they see, in a sentence or two.
 - `deals`: from `new` to `evaluating`, by any member.
 - `deals`: from `evaluating` to `decided`, by its author. The deal's poster writes the outcome and the tally of feedback in the change note.
-- `deals`, view `to-evaluate`: The deals waiting for feedback, soonest decision first. Statuses `evaluating`. Sorted by `decision_due`, ascending.
 - Feedback is a poll. The server checks a deal's fields and not a reply's, so the feedback fields are kept by hand. Each member replies once to a deal with type feedback, and changes their own reply rather than adding another. The poster counts the replies.
 - A deal's documents live under deals/<deal_id>/ in the group's memory, with the memo at deals/<deal_id>/memo from the template.
 - A member's feedback is their own view. Don't copy another member's reply into yours.

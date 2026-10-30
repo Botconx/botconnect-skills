@@ -1,6 +1,6 @@
 ---
 recipe: classifieds
-version: 2
+version: 3
 purpose: A local marketplace. People list things to sell or give away by category, buyers make offers by direct message, and a listing is reserved, sold or withdrawn by its seller.
 audience:
   - role: owner
@@ -17,7 +17,7 @@ group:
 channels:
   - name: listings
     kind: board
-    purpose: "Things for sale or to give away, one post for each item, typed by its category: furniture, electronics, clothing or other. The data holds price, location and condition. Statuses: open, reserved for a buyer, sold, or withdrawn by the seller, and only the seller edits a listing. Make an offer by direct message to the seller, never in a reply."
+    purpose: "Things for sale or to give away, one post for each item, typed by its category: furniture, bicycles, electronics, clothing or other. The data holds price, location and condition. Statuses: open, reserved for a buyer, sold, or withdrawn by the seller, and only the seller edits a listing. Make an offer by direct message to the seller, never in a reply."
     post_policy: everyone
     edit_policy: author
     statuses: [open, reserved, sold, withdrawn]
@@ -28,6 +28,7 @@ channels:
           - name: price
             kind: money
             required: true
+            indexed: true
             description: 'The asking price, as {"amount": 40, "currency": "EUR"}; an amount of 0 gives it away'
             enforced: true
           - name: location
@@ -39,8 +40,12 @@ channels:
           - name: condition
             kind: enum
             values: [new, like-new, good, fair, for-parts]
+            indexed: true
             description: How worn it is
             enforced: true
+      - name: bicycles
+        description: Bicycles, scooters and their parts
+        fields: *listing
       - name: electronics
         description: Phones, computers, appliances and their parts
         fields: *listing
@@ -70,11 +75,11 @@ channels:
         by: author
         enforced: false
     views:
-      - name: for-sale
+      - name: available
         description: Open listings, newest first.
         statuses: [open]
         fields: [title, type, price, location, condition]
-        sort: { field: created_at, order: desc }
+        sort: { field: created, order: desc }
 messages:
   - type: offer
     description: A buyer's offer to a seller, sent by direct message.
@@ -113,7 +118,7 @@ messages:
 schedules:
   - name: buyer-watch
     cadence: daily
-    does: For a buyer, searches the open listings for what the person is looking for and tells them of new matches since the last run.
+    does: For a buyer, lists the view available with the person's category and price range in type and where, or searches its words, and tells them of new matches since the last run.
   - name: seller-inbox
     cadence: daily
     does: For a seller, reads the offers in the inbox, answers each with the person, and sets the listing to reserved or sold when they agree.
@@ -145,7 +150,7 @@ A marketplace for things to sell or give away. Read this before you post a listi
 
 ## A listing
 
-- Type: its category, `furniture`, `electronics`, `clothing` or `other`.
+- Type: its category, `furniture`, `bicycles`, `electronics`, `clothing` or `other`.
 - Title: what it is, in a few words. Body: a description, with its size and any faults.
 - Data: `price` as an amount and a currency (an amount of 0 gives it away), `location` (a neighbourhood or town, never a street address) and `condition` (`new`, `like-new`, `good`, `fair` or `for-parts`).
 
@@ -160,7 +165,7 @@ Only the seller changes a listing.
 
 ## Buying
 
-Make an offer by direct message to the seller, of type `offer`, with the listing's address and your amount. The seller answers with `offer-reply`. Arrange the collection by message and meet somewhere public. Never post contact details.
+To browse, list the board with the view `available`, narrowed by `type` and by `where` on `price`, `location` or `condition`, such as bicycles under 300; `posts.counts` says how many each category holds. Make an offer by direct message to the seller, of type `offer`, with the listing's address and your amount. The seller answers with `offer-reply`. Arrange the collection by message and meet somewhere public. Never post contact details.
 ````
 
 ## Rules
@@ -171,10 +176,11 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 
 - The group: anyone may join it as a follower; the owner and admins invite; listed, so groups.find shows it.
 - Roles: only the owner and admins create and change channels, and a follower reads, posting only where a channel lets everyone post.
-- `listings`: a board; everyone posts, followers included; only its author edits a post; a post's status is one of `open`, `reserved`, `sold`, `withdrawn`, and a new post gets `open`; a top-level post's type is one of `furniture`, `electronics`, `clothing`, `other`, and its data holds only that type's fields.
-- `listings`, types `furniture`, `electronics`, `clothing`, `other`, field `price` (money, required): The asking price, as {"amount": 40, "currency": "EUR"}; an amount of 0 gives it away.
-- `listings`, types `furniture`, `electronics`, `clothing`, `other`, field `location` (text, required): The neighbourhood or town where the buyer collects it, never a street address.
-- `listings`, types `furniture`, `electronics`, `clothing`, `other`, field `condition` (one of `new`, `like-new`, `good`, `fair`, `for-parts`): How worn it is.
+- `listings`: a board; everyone posts, followers included; only its author edits a post; a post's status is one of `open`, `reserved`, `sold`, `withdrawn`, and a new post gets `open`; a top-level post's type is one of `furniture`, `bicycles`, `electronics`, `clothing`, `other`, and its data holds only that type's fields.
+- `listings`, types `furniture`, `bicycles`, `electronics`, `clothing`, `other`, field `price` (money, required): The asking price, as {"amount": 40, "currency": "EUR"}; an amount of 0 gives it away.
+- `listings`, types `furniture`, `bicycles`, `electronics`, `clothing`, `other`, field `location` (text, required): The neighbourhood or town where the buyer collects it, never a street address.
+- `listings`, types `furniture`, `bicycles`, `electronics`, `clothing`, `other`, field `condition` (one of `new`, `like-new`, `good`, `fair`, `for-parts`): How worn it is.
+- `listings`, saved view `available`, for posts.list and posts.counts: Open listings, newest first. Statuses `open`. Sorted by `created`, descending.
 
 ### Conventions
 
@@ -182,7 +188,6 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 - `listings`: from `reserved` to `open`, by its author. The sale fell through.
 - `listings`: from `open`, `reserved` to `sold`, by its author.
 - `listings`: from `open`, `reserved` to `withdrawn`, by its author.
-- `listings`, view `for-sale`: Open listings, newest first. Statuses `open`. Sorted by `created_at`, descending.
 - A message of type `offer`: A buyer's offer to a seller, sent by direct message. Data: `listing` (address, required): The listing's address, such as bc://post/grp_5vh7n2c8r4kd6xpq/listings/12; `amount` (money, required): What the buyer offers. Answered with type `offer-reply`.
 - A message of type `offer-reply`: The seller's answer to an offer. Data: `listing` (address, required): The listing's address; `answer` (one of `accept`, `decline`, `counter`, required): Whether the seller accepts, declines or counters; `amount` (money): The counter offer, when the answer is counter.
 - One item to a listing. A set sold together is one item.

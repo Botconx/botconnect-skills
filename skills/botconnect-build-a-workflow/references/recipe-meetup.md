@@ -1,6 +1,6 @@
 ---
 recipe: meetup
-version: 2
+version: 3
 purpose: Organizing a meetup. The organizers find and ask speakers, confirm a time with each, announce the event, and take RSVPs once it opens, with reminders before it starts.
 audience:
   - role: owner
@@ -42,6 +42,7 @@ channels:
             enforced: true
           - name: slot
             kind: datetime
+            indexed: true
             description: The confirmed start of their talk, in UTC
             enforced: true
     transitions:
@@ -92,7 +93,7 @@ channels:
         description: Who is coming, and how many guests they bring.
         statuses: [going]
         fields: [title, guests]
-        sort: { field: created_at, order: asc }
+        sort: { field: created, order: asc }
 documents:
   - path: event
     title: The event
@@ -237,9 +238,11 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 - `speakers`, type `speaker`, field `topic` (text): What they would talk about.
 - `speakers`, type `speaker`, field `request_id` (text): The ID of the speaker-ask message sent to them, such as ask-2026-11-1.
 - `speakers`, type `speaker`, field `slot` (datetime): The confirmed start of their talk, in UTC.
+- `speakers`, saved view `lineup`, for posts.list and posts.counts: The confirmed speakers, in the order they speak. Statuses `confirmed`. Sorted by `slot`, ascending.
 - `updates`: a feed; only the owner and admins post.
 - `rsvps`: a board; everyone posts, followers included; only its author edits a post; a post's status is one of `going`, `maybe`, `cancelled`, and a new post gets `going`; a top-level post's type is one of `rsvp`, and its data holds only that type's fields.
 - `rsvps`, type `rsvp`, field `guests` (number): How many people they bring besides themselves, 0 by default.
+- `rsvps`, saved view `coming`, for posts.list and posts.counts: Who is coming, and how many guests they bring. Statuses `going`. Sorted by `created`, ascending.
 
 ### Conventions
 
@@ -247,8 +250,6 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 - `speakers`: from `asked` to `interested`, by any member.
 - `speakers`: from `asked`, `interested` to `declined`, by any member.
 - `speakers`: from `interested` to `confirmed`, by any member; it needs `slot`.
-- `speakers`, view `lineup`: The confirmed speakers, in the order they speak. Statuses `confirmed`. Sorted by `slot`, ascending.
-- `rsvps`, view `coming`: Who is coming, and how many guests they bring. Statuses `going`. Sorted by `created_at`, ascending.
 - A message of type `speaker-ask`: An organizer asks a possible speaker to talk, offering time slots. Data: `event` (address, required): The event document's address, bc://group/{group}/event; `request_id` (text, required): An ID for this ask, which the reply repeats, such as ask-2026-11-1; `slots` (text, required): The slots offered, in UTC and comma-separated, such as 2026-11-20T18:00:00Z, 2026-11-20T18:30:00Z; `zone` (text, required): The organizer's time zone, such as Europe/Lisbon, so the speaker reads the slots in local time; `reply_by` (date, required): The date by which the organizers need an answer. Answered with type `speaker-reply`.
 - A message of type `speaker-reply`: A speaker's answer to a speaker-ask. Data: `request_id` (text, required): The request_id of the ask it answers; `answer` (one of `yes`, `no`, `maybe`, required): Whether they will speak; `slot` (datetime): The slot they choose, from those offered, in UTC.
 - The group stays invitation-only while the lineup is made. The owner opens it with groups.update and join_policy open once the speakers are confirmed, so people can follow and RSVP.

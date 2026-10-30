@@ -1,6 +1,6 @@
 ---
 recipe: deal-pipeline
-version: 2
+version: 3
 purpose: A fund's deal pipeline. Every company the team looks at is one deal on a board, moving from proposed through the investment committee, due diligence, the term sheet and closing to invested, or rejected with a reason, with an owner and a next action on each.
 audience:
   - role: owner
@@ -105,8 +105,25 @@ channels:
       - name: closed
         description: Deals invested in or rejected, most recent first.
         statuses: [invested, rejected]
-        fields: [title, status, rejection_reason, updated_at]
-        sort: { field: updated_at, order: desc }
+        fields: [title, status, rejection_reason]
+        sort: { field: activity, order: desc }
+      - name: my-deals
+        description: Your own deals still in play, soonest next action first.
+        statuses: [proposed, investment-committee, due-diligence, term-sheet, closing]
+        where: { owner: me }
+        fields: [title, status, next_action, next_action_due]
+        sort: { field: next_action_due, order: asc }
+      - name: overdue
+        description: Deals still in play whose next action is past due, the oldest first.
+        statuses: [proposed, investment-committee, due-diligence, term-sheet, closing]
+        where: { next_action_due: { lte: now } }
+        fields: [title, status, owner, next_action, next_action_due]
+        sort: { field: next_action_due, order: asc }
+      - name: awaiting-committee
+        description: The deals the investment committee will discuss, soonest next action first.
+        statuses: [investment-committee]
+        fields: [title, owner, next_action, next_action_due]
+        sort: { field: next_action_due, order: asc }
 documents:
   - path: pipeline-week
     title: The pipeline this week
@@ -135,10 +152,10 @@ messages:
 schedules:
   - name: idle-flag
     cadence: daily
-    does: Lists the active deals, and replies on each one whose post hasn't changed in 14 days, naming its owner and asking for the next action.
+    does: Lists the view active, and replies on each deal whose post hasn't changed in 14 days, naming its owner and asking for the next action.
   - name: weekly-render
     cadence: weekly, on Monday morning
-    does: Lists the deals by stage and saves the pipeline-week document from its template, with the deals that moved, the new ones and the actions due this week.
+    does: Counts the deals by status with posts.counts, lists the view overdue, and saves the pipeline-week document from its template, with the deals that moved, the new ones and the actions due this week.
   - name: quarterly-funnel
     cadence: quarterly, on the first day of the quarter
     does: Counts the deals that reached each stage in the past quarter and saves funnel/{quarter}, such as funnel/2026-q4, from its template.
@@ -183,6 +200,10 @@ A new deal is `proposed`. It moves forward one stage at a time, with a change no
 6. `invested`: done.
 
 A deal can move to `rejected` from any stage, with `rejection_reason` set. Nothing moves backwards.
+
+## Find deals
+
+List the board by a saved view: `active`, `my-deals` (each person's own), `overdue`, `awaiting-committee` or `closed`. `posts.counts` by `status` is the funnel. Filter by `owner` or `next_action_due` with `where`.
 
 ## Every week
 
@@ -251,6 +272,11 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 - `deals`, type `deal`, field `source_reference` (text): Where the deal came from, such as the email's subject and date, or who introduced it.
 - `deals`, type `deal`, field `source_digest` (text): The SHA-256 of the deck file as it arrived, so a deck sent twice is recognized.
 - `deals`, type `deal`, field `rejection_reason` (text): Why the fund passed, in a sentence. Set when the deal moves to rejected.
+- `deals`, saved view `active`, for posts.list and posts.counts: Deals still in play, with their owner and next action, soonest first. Statuses `proposed`, `investment-committee`, `due-diligence`, `term-sheet`, `closing`. Sorted by `next_action_due`, ascending.
+- `deals`, saved view `closed`, for posts.list and posts.counts: Deals invested in or rejected, most recent first. Statuses `invested`, `rejected`. Sorted by `activity`, descending.
+- `deals`, saved view `my-deals`, for posts.list and posts.counts: Your own deals still in play, soonest next action first. Statuses `proposed`, `investment-committee`, `due-diligence`, `term-sheet`, `closing`. Sorted by `next_action_due`, ascending.
+- `deals`, saved view `overdue`, for posts.list and posts.counts: Deals still in play whose next action is past due, the oldest first. Statuses `proposed`, `investment-committee`, `due-diligence`, `term-sheet`, `closing`. Sorted by `next_action_due`, ascending.
+- `deals`, saved view `awaiting-committee`, for posts.list and posts.counts: The deals the investment committee will discuss, soonest next action first. Statuses `investment-committee`. Sorted by `next_action_due`, ascending.
 
 ### Conventions
 
@@ -260,8 +286,6 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 - `deals`: from `term-sheet` to `closing`, by any member.
 - `deals`: from `closing` to `invested`, by any member.
 - `deals`: from any status to `rejected`, by any member; it needs `rejection_reason`. A deal may be rejected from any stage, and stays rejected.
-- `deals`, view `active`: Deals still in play, with their owner and next action, soonest first. Statuses `proposed`, `investment-committee`, `due-diligence`, `term-sheet`, `closing`. Sorted by `next_action_due`, ascending.
-- `deals`, view `closed`: Deals invested in or rejected, most recent first. Statuses `invested`, `rejected`. Sorted by `updated_at`, descending.
 - A message of type `pitch`: A founder's pitch sent to the pipeline's owner, who posts it as a deal on the board. Data: `company` (text, required): The company's name; `deck_address` (address): The deck's address, if the founder published it in BotConnect; `source_reference` (text): Who sent it, and how it arrived.
 - A deal moves forward one stage at a time, never back. To reopen a rejected deal, post it again with a new deal_id.
 - Before posting a deal, search the board for its company's name, so a company isn't posted twice under two IDs.

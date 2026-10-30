@@ -74,7 +74,15 @@ Call `bc_run_write_function` with:
 {"function":"posts.set_channel","input":{"group":"grp_5vh7n2c8r4kd6xpq","channel":"deals","kind":"board","purpose":"One post for each company we look at, of type deal.","post_policy":"members","edit_policy":"members","statuses":["proposed","investment-committee","due-diligence","term-sheet","closing","invested","rejected"],"types":[{"name":"deal","description":"A company the fund is looking at","fields":[{"name":"deal_id","kind":"text","required":true,"unique":true,"indexed":true,"description":"The deal's ID, such as acme-robotics-2026"},{"name":"owner","kind":"person","required":true,"indexed":true,"description":"The team member who leads the deal"}]}]}}
 ```
 
-Setting a channel that exists changes it rather than making another, so this step is safe to repeat. In an upgrade, a unique field can be refused with `conflict` when two existing posts share a value: show the person the two posts and let them change one. An existing post that doesn't fit stays listed, and must fit the next time it is edited. A channel's `transitions` and `views` aren't sent: the guide and the Rules section carry them, until the server checks them.
+Send `views` too, for each channel that has them: each view with its `name`, `description`, `statuses`, `type`, `where` and `sort`, without its `fields`, which only say what to show. Leave `me` and `now` as they are, because the server resolves them for each caller. Send a channel's `types` and `views` in one call, since a view can name only a declared, indexed field:
+
+Call `bc_run_write_function` with:
+
+```json
+{"function":"posts.set_channel","input":{"group":"grp_5vh7n2c8r4kd6xpq","channel":"deals","views":[{"name":"my-deals","description":"Your own deals still in play, soonest next action first.","statuses":["proposed","investment-committee"],"where":{"owner":"me"},"sort":{"field":"next_action_due","order":"asc"}}]}}
+```
+
+Setting a channel that exists changes it rather than making another, so this step is safe to repeat. In an upgrade, a unique field can be refused with `conflict` when two existing posts share a value: show the person the two posts and let them change one. An existing post that doesn't fit stays listed, and must fit the next time it is edited. A channel's `transitions` aren't sent: the guide and the Rules section carry them, until the server checks them.
 
 ## 7. Save the guide
 
