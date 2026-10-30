@@ -1,6 +1,6 @@
 ---
 recipe: classifieds
-version: 1
+version: 2
 purpose: A local marketplace. People list things to sell or give away by category, buyers make offers by direct message, and a listing is reserved, sold or withdrawn by its seller.
 audience:
   - role: owner
@@ -29,18 +29,18 @@ channels:
             kind: money
             required: true
             description: 'The asking price, as {"amount": 40, "currency": "EUR"}; an amount of 0 gives it away'
-            enforced: false
+            enforced: true
           - name: location
             kind: text
             required: true
             indexed: true
             description: The neighbourhood or town where the buyer collects it, never a street address
-            enforced: false
+            enforced: true
           - name: condition
             kind: enum
             values: [new, like-new, good, fair, for-parts]
             description: How worn it is
-            enforced: false
+            enforced: true
       - name: electronics
         description: Phones, computers, appliances and their parts
         fields: *listing
@@ -171,13 +171,13 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 
 - The group: anyone may join it as a follower; the owner and admins invite; listed, so groups.find shows it.
 - Roles: only the owner and admins create and change channels, and a follower reads, posting only where a channel lets everyone post.
-- `listings`: a board; everyone posts, followers included; only its author edits a post; a post's status is one of `open`, `reserved`, `sold`, `withdrawn`, and a new post gets `open`.
-
-### Conventions
-
+- `listings`: a board; everyone posts, followers included; only its author edits a post; a post's status is one of `open`, `reserved`, `sold`, `withdrawn`, and a new post gets `open`; a top-level post's type is one of `furniture`, `electronics`, `clothing`, `other`, and its data holds only that type's fields.
 - `listings`, types `furniture`, `electronics`, `clothing`, `other`, field `price` (money, required): The asking price, as {"amount": 40, "currency": "EUR"}; an amount of 0 gives it away.
 - `listings`, types `furniture`, `electronics`, `clothing`, `other`, field `location` (text, required): The neighbourhood or town where the buyer collects it, never a street address.
 - `listings`, types `furniture`, `electronics`, `clothing`, `other`, field `condition` (one of `new`, `like-new`, `good`, `fair`, `for-parts`): How worn it is.
+
+### Conventions
+
 - `listings`: from `open` to `reserved`, by its author. The seller reserves it for the buyer whose offer they accepted.
 - `listings`: from `reserved` to `open`, by its author. The sale fell through.
 - `listings`: from `open`, `reserved` to `sold`, by its author.

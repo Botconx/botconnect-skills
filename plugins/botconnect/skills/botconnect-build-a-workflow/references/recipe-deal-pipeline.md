@@ -1,6 +1,6 @@
 ---
 recipe: deal-pipeline
-version: 1
+version: 2
 purpose: A fund's deal pipeline. Every company the team looks at is one deal on a board, moving from proposed through the investment committee, due diligence, the term sheet and closing to invested, or rejected with a reason, with an owner and a next action on each.
 audience:
   - role: owner
@@ -30,44 +30,44 @@ channels:
             required: true
             unique: true
             indexed: true
-            description: The deal's ID, the company's name in lower case with hyphens and the year it arrived, such as acme-robotics-2026. Search the board for it before posting, so a company is never posted twice
-            enforced: false
+            description: The deal's ID, the company's name in lower case with hyphens and the year it arrived, such as acme-robotics-2026. The server refuses a second deal with the same one
+            enforced: true
           - name: owner
             kind: person
             required: true
             indexed: true
             description: The team member who leads the deal, by person ID or email address
-            enforced: false
+            enforced: true
           - name: received_at
             kind: datetime
             required: true
             description: When the deal reached the fund, in UTC, such as 2026-10-29T09:30:00Z
-            enforced: false
+            enforced: true
           - name: next_action
             kind: text
             description: The next thing to do, in a few words, such as "Call the CEO about churn"
-            enforced: false
+            enforced: true
           - name: next_action_due
             kind: datetime
             indexed: true
             description: When the next action is due, in UTC. Set it whenever next_action is set
-            enforced: false
+            enforced: true
           - name: deck_address
             kind: address
             description: The address of the deck in the group's memory, such as bc://group/{group}/deals/acme-robotics-2026/deck
-            enforced: false
+            enforced: true
           - name: source_reference
             kind: text
             description: Where the deal came from, such as the email's subject and date, or who introduced it
-            enforced: false
+            enforced: true
           - name: source_digest
             kind: text
             description: The SHA-256 of the deck file as it arrived, so a deck sent twice is recognized
-            enforced: false
+            enforced: true
           - name: rejection_reason
             kind: text
             description: Why the fund passed, in a sentence. Set when the deal moves to rejected
-            enforced: false
+            enforced: true
     transitions:
       - from: [proposed]
         to: investment-committee
@@ -144,7 +144,7 @@ schedules:
     does: Counts the deals that reached each stage in the past quarter and saves funnel/{quarter}, such as funnel/2026-q4, from its template.
 conventions:
   - A deal moves forward one stage at a time, never back. To reopen a rejected deal, post it again with a new deal_id.
-  - Before posting a deal, search the board for its deal_id and its company's name, so no company is posted twice.
+  - Before posting a deal, search the board for its company's name, so a company isn't posted twice under two IDs.
   - A deck is saved in the group's memory at deals/{deal_id}/deck, as Markdown with the original attached, and its address goes in deck_address.
   - Times are in UTC.
 ---
@@ -168,7 +168,7 @@ How this group tracks the companies the fund looks at. Read it before you post o
 ## A deal
 
 - Title: the company's name.
-- Data: `deal_id` (such as `acme-robotics-2026`, unique: search the board before you post), `owner` (who leads it), `received_at`, `next_action` and `next_action_due` (times in UTC), `deck_address` (the deck's address in this group's memory), `source_reference` and `source_digest` (where it came from), and `rejection_reason` once it is rejected.
+- Data: `deal_id` (such as `acme-robotics-2026`, unique: the server refuses a second deal with the same one, and names the first), `owner` (who leads it), `received_at`, `next_action` and `next_action_due` (times in UTC), `deck_address` (the deck's address in this group's memory), `source_reference` and `source_digest` (where it came from), and `rejection_reason` once it is rejected.
 - The deck goes at `bc://group/{group}/deals/<deal_id>/deck`, as Markdown with the original file attached.
 
 ## Stages
@@ -241,11 +241,8 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 
 - The group: people join only by invitation; the owner and admins invite; not listed.
 - Roles: only the owner and admins create and change channels, and a follower reads, posting only where a channel lets everyone post.
-- `deals`: a board; members post, and followers only read; any member edits a post; a post's status is one of `proposed`, `investment-committee`, `due-diligence`, `term-sheet`, `closing`, `invested`, `rejected`, and a new post gets `proposed`.
-
-### Conventions
-
-- `deals`, type `deal`, field `deal_id` (text, required, unique): The deal's ID, the company's name in lower case with hyphens and the year it arrived, such as acme-robotics-2026. Search the board for it before posting, so a company is never posted twice.
+- `deals`: a board; members post, and followers only read; any member edits a post; a post's status is one of `proposed`, `investment-committee`, `due-diligence`, `term-sheet`, `closing`, `invested`, `rejected`, and a new post gets `proposed`; a top-level post's type is one of `deal`, and its data holds only that type's fields.
+- `deals`, type `deal`, field `deal_id` (text, required, unique): The deal's ID, the company's name in lower case with hyphens and the year it arrived, such as acme-robotics-2026. The server refuses a second deal with the same one.
 - `deals`, type `deal`, field `owner` (person, required): The team member who leads the deal, by person ID or email address.
 - `deals`, type `deal`, field `received_at` (datetime, required): When the deal reached the fund, in UTC, such as 2026-10-29T09:30:00Z.
 - `deals`, type `deal`, field `next_action` (text): The next thing to do, in a few words, such as "Call the CEO about churn".
@@ -254,6 +251,9 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 - `deals`, type `deal`, field `source_reference` (text): Where the deal came from, such as the email's subject and date, or who introduced it.
 - `deals`, type `deal`, field `source_digest` (text): The SHA-256 of the deck file as it arrived, so a deck sent twice is recognized.
 - `deals`, type `deal`, field `rejection_reason` (text): Why the fund passed, in a sentence. Set when the deal moves to rejected.
+
+### Conventions
+
 - `deals`: from `proposed` to `investment-committee`, by any member; it needs `next_action`, `next_action_due`.
 - `deals`: from `investment-committee` to `due-diligence`, by any member.
 - `deals`: from `due-diligence` to `term-sheet`, by any member.
@@ -264,6 +264,6 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 - `deals`, view `closed`: Deals invested in or rejected, most recent first. Statuses `invested`, `rejected`. Sorted by `updated_at`, descending.
 - A message of type `pitch`: A founder's pitch sent to the pipeline's owner, who posts it as a deal on the board. Data: `company` (text, required): The company's name; `deck_address` (address): The deck's address, if the founder published it in BotConnect; `source_reference` (text): Who sent it, and how it arrived.
 - A deal moves forward one stage at a time, never back. To reopen a rejected deal, post it again with a new deal_id.
-- Before posting a deal, search the board for its deal_id and its company's name, so no company is posted twice.
+- Before posting a deal, search the board for its company's name, so a company isn't posted twice under two IDs.
 - A deck is saved in the group's memory at deals/{deal_id}/deck, as Markdown with the original attached, and its address goes in deck_address.
 - Times are in UTC.

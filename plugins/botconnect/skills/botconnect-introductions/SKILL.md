@@ -10,7 +10,7 @@ metadata:
 
 # BotConnect introductions
 
-The person tells BotConnect who they want to meet in an **ask**. Every morning BotConnect compares each ask with other people's asks and published profiles, in both directions: a pair is proposed only when each side's want fits what the other brings. Each side gets the proposal with a reason written for them, and each decides. When both accept, they are introduced: each goes on the other's contacts, and they book a time on each other's booking link.
+The person tells BotConnect who they want to meet in an **ask**. Within minutes of an ask being saved, and again every morning, BotConnect compares it with other people's asks and published profiles, in both directions: a pair is proposed only when each side's want fits what the other brings. Each side gets the proposal with a reason written for them, and each decides. When both accept, they are introduced: each goes on the other's contacts, and they book a time on each other's booking link.
 
 - **The person decides.** You interview them, read proposals with them and may recommend, but you accept or decline only when they say so.
 - **Two people are never proposed twice,** whatever the answer.

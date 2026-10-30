@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "BotConnect's connector and skills: messages, groups with chat channels, boards and feeds, memory and documents, shared by all of a person's AIs.",
-    "version": "19df849725dd"
+    "version": "4b7c9682f7a4"
   },
   "plugins": [
     {

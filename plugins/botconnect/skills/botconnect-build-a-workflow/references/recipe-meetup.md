@@ -1,6 +1,6 @@
 ---
 recipe: meetup
-version: 1
+version: 2
 purpose: Organizing a meetup. The organizers find and ask speakers, confirm a time with each, announce the event, and take RSVPs once it opens, with reminders before it starts.
 audience:
   - role: owner
@@ -31,19 +31,19 @@ channels:
             kind: person
             required: true
             description: The speaker, by person ID or email address
-            enforced: false
+            enforced: true
           - name: topic
             kind: text
             description: What they would talk about
-            enforced: false
+            enforced: true
           - name: request_id
             kind: text
             description: The ID of the speaker-ask message sent to them, such as ask-2026-11-1
-            enforced: false
+            enforced: true
           - name: slot
             kind: datetime
             description: The confirmed start of their talk, in UTC
-            enforced: false
+            enforced: true
     transitions:
       - from: [candidate]
         to: asked
@@ -86,7 +86,7 @@ channels:
           - name: guests
             kind: number
             description: How many people they bring besides themselves, 0 by default
-            enforced: false
+            enforced: true
     views:
       - name: coming
         description: Who is coming, and how many guests they bring.
@@ -232,22 +232,22 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 
 - The group: people join only by invitation; the owner and admins invite; not listed.
 - Roles: only the owner and admins create and change channels, and a follower reads, posting only where a channel lets everyone post.
-- `speakers`: a board; members post, and followers only read; any member edits a post; a post's status is one of `candidate`, `asked`, `interested`, `confirmed`, `declined`, and a new post gets `candidate`.
-- `updates`: a feed; only the owner and admins post.
-- `rsvps`: a board; everyone posts, followers included; only its author edits a post; a post's status is one of `going`, `maybe`, `cancelled`, and a new post gets `going`.
-
-### Conventions
-
+- `speakers`: a board; members post, and followers only read; any member edits a post; a post's status is one of `candidate`, `asked`, `interested`, `confirmed`, `declined`, and a new post gets `candidate`; a top-level post's type is one of `speaker`, and its data holds only that type's fields.
 - `speakers`, type `speaker`, field `speaker` (person, required): The speaker, by person ID or email address.
 - `speakers`, type `speaker`, field `topic` (text): What they would talk about.
 - `speakers`, type `speaker`, field `request_id` (text): The ID of the speaker-ask message sent to them, such as ask-2026-11-1.
 - `speakers`, type `speaker`, field `slot` (datetime): The confirmed start of their talk, in UTC.
+- `updates`: a feed; only the owner and admins post.
+- `rsvps`: a board; everyone posts, followers included; only its author edits a post; a post's status is one of `going`, `maybe`, `cancelled`, and a new post gets `going`; a top-level post's type is one of `rsvp`, and its data holds only that type's fields.
+- `rsvps`, type `rsvp`, field `guests` (number): How many people they bring besides themselves, 0 by default.
+
+### Conventions
+
 - `speakers`: from `candidate` to `asked`, by any member; it needs `request_id`.
 - `speakers`: from `asked` to `interested`, by any member.
 - `speakers`: from `asked`, `interested` to `declined`, by any member.
 - `speakers`: from `interested` to `confirmed`, by any member; it needs `slot`.
 - `speakers`, view `lineup`: The confirmed speakers, in the order they speak. Statuses `confirmed`. Sorted by `slot`, ascending.
-- `rsvps`, type `rsvp`, field `guests` (number): How many people they bring besides themselves, 0 by default.
 - `rsvps`, view `coming`: Who is coming, and how many guests they bring. Statuses `going`. Sorted by `created_at`, ascending.
 - A message of type `speaker-ask`: An organizer asks a possible speaker to talk, offering time slots. Data: `event` (address, required): The event document's address, bc://group/{group}/event; `request_id` (text, required): An ID for this ask, which the reply repeats, such as ask-2026-11-1; `slots` (text, required): The slots offered, in UTC and comma-separated, such as 2026-11-20T18:00:00Z, 2026-11-20T18:30:00Z; `zone` (text, required): The organizer's time zone, such as Europe/Lisbon, so the speaker reads the slots in local time; `reply_by` (date, required): The date by which the organizers need an answer. Answered with type `speaker-reply`.
 - A message of type `speaker-reply`: A speaker's answer to a speaker-ask. Data: `request_id` (text, required): The request_id of the ask it answers; `answer` (one of `yes`, `no`, `maybe`, required): Whether they will speak; `slot` (datetime): The slot they choose, from those offered, in UTC.

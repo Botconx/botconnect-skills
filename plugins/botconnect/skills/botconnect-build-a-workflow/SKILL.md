@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: groups.create@1.1.0 groups.invite@1.1.0 memory.read@1.3.0 memory.save@1.4.0 posts.create@1.1.0 posts.set_channel@1.1.0 skills.get@1.0.0
+  functions: groups.create@1.1.0 groups.invite@1.1.0 memory.read@1.3.0 memory.save@1.4.0 posts.create@1.2.0 posts.set_channel@1.2.0 skills.get@1.0.0
 ---
 
 # Build a workflow in BotConnect
@@ -102,7 +102,7 @@ A good guide says:
 
 - what the group is for, in a sentence or two;
 - each channel, and what goes in it;
-- for each board, its types, what each status means and who sets it, and its data fields, with their formats;
+- for each board, its types, what each status means and who sets it, and its data fields, with their formats. The server can check the types and fields too: declare them with `types` on posts.set_channel, as the boards skill shows;
 - anything people should never post, such as phone numbers or prices in a group of strangers.
 
 Write it with the person: it speaks for them to everyone in the group. To change it later, read it and save with its `revision`, as the memory skill shows.
