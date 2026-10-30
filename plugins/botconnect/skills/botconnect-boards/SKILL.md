@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: memory.read@1.3.0 posts.channels@1.3.0 posts.counts@1.0.0 posts.create@1.2.0 posts.get@1.2.0 posts.list@1.2.0 posts.search@1.2.0 posts.set_channel@1.3.0 posts.update@1.1.0
+  functions: memory.read@1.3.0 posts.channels@1.4.0 posts.counts@1.0.0 posts.create@1.3.0 posts.get@1.3.0 posts.list@1.2.0 posts.search@1.2.0 posts.set_channel@1.4.0 posts.update@1.2.0
 ---
 
 # BotConnect boards
@@ -172,6 +172,17 @@ Call `bc_run_write_function` with:
 - **On `conflict`, don't retry blindly.** The error's `current` holds the item as it is now: who changed it, and its status. You also get `conflict` when the item already has the status you ask for because someone else set it. Tell the person, for example that someone else claimed the task first. Retry with the new version only when the change still makes sense.
 - Every edit to an item adds a **change note** under the board's next number, in the editor's name, with the `note` as its body. Everyone catching up sees it, so you don't need a separate post to announce a status change.
 - Change only what the person asked you to change. Give only the fields that change; `data` replaces the whole object.
+
+### Rules and holds
+
+A board can declare its `transitions`, which `posts.channels` shows: the moves between statuses, and who may make each. There, `posts.update` makes only those moves:
+
+- **A move no rule allows is refused, and the refusal lists the moves allowed from the current status.** A status with no rule out of it is final. Tell the person what is allowed, and don't try another way round: a new post always starts at the first status.
+- **A rule says who.** `by` is `members`, `admins`, `author`, `everyone`, or `field:owner` for the person a field names, and it decides the move whatever the board's edit policy. So under `everyone`, anyone who can read the board can make that move on someone else's item, changing only the status and any fields the move requires.
+- **A rule can need fields.** `requires` names fields that must be set in `data` after the move, such as a reason for rejecting. Give the whole `data` with the field added.
+- **A hold is a move with `records` and `expires`.** Reserving a listing sets `reserved_by` to you, which the server writes and nobody can edit, and after the time in `expires` the item goes back by itself, with a change note from BotConnect. Say how long the hold lasts. If two people reserve at once, one gets `conflict` naming the holder, as with any claim. Letting a hold go by hand, by a move back to the status it falls back to, clears the holder too.
+
+`posts.get` returns `stages`: each status the item has been through, with when and by whom.
 
 Report progress in a reply, then finish with another update:
 

@@ -82,7 +82,15 @@ Call `bc_run_write_function` with:
 {"function":"posts.set_channel","input":{"group":"grp_5vh7n2c8r4kd6xpq","channel":"deals","views":[{"name":"my-deals","description":"Your own deals still in play, soonest next action first.","statuses":["proposed","investment-committee"],"where":{"owner":"me"},"sort":{"field":"next_action_due","order":"asc"}}]}}
 ```
 
-Setting a channel that exists changes it rather than making another, so this step is safe to repeat. In an upgrade, a unique field can be refused with `conflict` when two existing posts share a value: show the person the two posts and let them change one. An existing post that doesn't fit stays listed, and must fit the next time it is edited. A channel's `transitions` aren't sent: the guide and the Rules section carry them, until the server checks them.
+Send `transitions` too, for each channel whose rules say `enforced: true`, in the same call as its `types`, since a rule can name only a declared field. Write one rule for each status in `from`, with that status as `from`, `"*"` as `"any"`, and `to`, `by`, `requires`, `records` and `expires` as the manifest gives them, without `note` and `enforced`. Leave out rules that say `enforced: false`: the guide and the Rules section carry them as conventions. From then on a post makes only these moves, and a status no rule leaves is final:
+
+Call `bc_run_write_function` with:
+
+```json
+{"function":"posts.set_channel","input":{"group":"grp_5vh7n2c8r4kd6xpq","channel":"listings","transitions":[{"from":"open","to":"reserved","by":"everyone","records":"reserved_by","expires":{"after":"48h","to":"open"}},{"from":"reserved","to":"open","by":"field:reserved_by"},{"from":"reserved","to":"sold","by":"author"}]}}
+```
+
+Setting a channel that exists changes it rather than making another, so this step is safe to repeat. In an upgrade, a unique field can be refused with `conflict` when two existing posts share a value: show the person the two posts and let them change one. An existing post that doesn't fit stays listed, and must fit the next time it is edited.
 
 ## 7. Save the guide
 

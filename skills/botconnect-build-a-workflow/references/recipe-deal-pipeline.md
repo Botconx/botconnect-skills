@@ -1,6 +1,6 @@
 ---
 recipe: deal-pipeline
-version: 3
+version: 4
 purpose: A fund's deal pipeline. Every company the team looks at is one deal on a board, moving from proposed through the investment committee, due diligence, the term sheet and closing to invested, or rejected with a reason, with an owner and a next action on each.
 audience:
   - role: owner
@@ -17,7 +17,7 @@ group:
 channels:
   - name: deals
     kind: board
-    purpose: "One post for each company we look at, of type deal, titled with the company's name. Its data holds deal_id, owner, received_at, next_action and next_action_due, and the deck's address. Statuses in order: proposed, investment-committee, due-diligence, term-sheet, closing, invested, or rejected with a reason. Move a deal forward one stage at a time, with a change note; any member may move any deal. Discuss a deal in replies to its post."
+    purpose: "One post for each company we look at, of type deal, titled with the company's name. Its data holds deal_id, owner, received_at, next_action and next_action_due, and the deck's address. Statuses in order: proposed, investment-committee, due-diligence, term-sheet, closing, invested, or rejected with a reason. A deal moves forward one stage at a time, with a change note, and any member may move any deal; the server refuses any other move. Discuss a deal in replies to its post."
     post_policy: members
     edit_policy: members
     statuses: [proposed, investment-committee, due-diligence, term-sheet, closing, invested, rejected]
@@ -73,29 +73,29 @@ channels:
         to: investment-committee
         by: members
         requires: [next_action, next_action_due]
-        enforced: false
+        enforced: true
       - from: [investment-committee]
         to: due-diligence
         by: members
-        enforced: false
+        enforced: true
       - from: [due-diligence]
         to: term-sheet
         by: members
-        enforced: false
+        enforced: true
       - from: [term-sheet]
         to: closing
         by: members
-        enforced: false
+        enforced: true
       - from: [closing]
         to: invested
         by: members
-        enforced: false
-      - from: "*"
+        enforced: true
+      - from: [proposed, investment-committee, due-diligence, term-sheet, closing]
         to: rejected
         by: members
         requires: [rejection_reason]
-        note: A deal may be rejected from any stage, and stays rejected.
-        enforced: false
+        note: A deal may be rejected from any stage before it is invested, and stays rejected.
+        enforced: true
     views:
       - name: active
         description: Deals still in play, with their owner and next action, soonest first.
@@ -160,7 +160,7 @@ schedules:
     cadence: quarterly, on the first day of the quarter
     does: Counts the deals that reached each stage in the past quarter and saves funnel/{quarter}, such as funnel/2026-q4, from its template.
 conventions:
-  - A deal moves forward one stage at a time, never back. To reopen a rejected deal, post it again with a new deal_id.
+  - To reopen a rejected deal, post it again with a new deal_id.
   - Before posting a deal, search the board for its company's name, so a company isn't posted twice under two IDs.
   - A deck is saved in the group's memory at deals/{deal_id}/deck, as Markdown with the original attached, and its address goes in deck_address.
   - Times are in UTC.
@@ -199,7 +199,7 @@ A new deal is `proposed`. It moves forward one stage at a time, with a change no
 5. `closing`: the documents are being signed.
 6. `invested`: done.
 
-A deal can move to `rejected` from any stage, with `rejection_reason` set. Nothing moves backwards.
+A deal can move to `rejected` from any stage before `invested`, with `rejection_reason` set. `invested` and `rejected` are final, and nothing moves backwards: the server refuses any other move and names those allowed. `posts.get` shows each deal's `stages`, with when and by whom.
 
 ## Find deals
 
@@ -262,7 +262,7 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 
 - The group: people join only by invitation; the owner and admins invite; not listed.
 - Roles: only the owner and admins create and change channels, and a follower reads, posting only where a channel lets everyone post.
-- `deals`: a board; members post, and followers only read; any member edits a post; a post's status is one of `proposed`, `investment-committee`, `due-diligence`, `term-sheet`, `closing`, `invested`, `rejected`, and a new post gets `proposed`; a top-level post's type is one of `deal`, and its data holds only that type's fields.
+- `deals`: a board; members post, and followers only read; any member edits a post; a post's status is one of `proposed`, `investment-committee`, `due-diligence`, `term-sheet`, `closing`, `invested`, `rejected`, and a new post gets `proposed`; a top-level post's type is one of `deal`, and its data holds only that type's fields; a post moves only as the rules below say, and a status no rule leaves is final.
 - `deals`, type `deal`, field `deal_id` (text, required, unique): The deal's ID, the company's name in lower case with hyphens and the year it arrived, such as acme-robotics-2026. The server refuses a second deal with the same one.
 - `deals`, type `deal`, field `owner` (person, required): The team member who leads the deal, by person ID or email address.
 - `deals`, type `deal`, field `received_at` (datetime, required): When the deal reached the fund, in UTC, such as 2026-10-29T09:30:00Z.
@@ -272,6 +272,12 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 - `deals`, type `deal`, field `source_reference` (text): Where the deal came from, such as the email's subject and date, or who introduced it.
 - `deals`, type `deal`, field `source_digest` (text): The SHA-256 of the deck file as it arrived, so a deck sent twice is recognized.
 - `deals`, type `deal`, field `rejection_reason` (text): Why the fund passed, in a sentence. Set when the deal moves to rejected.
+- `deals`: from `proposed` to `investment-committee`, by any member; it needs `next_action`, `next_action_due`.
+- `deals`: from `investment-committee` to `due-diligence`, by any member.
+- `deals`: from `due-diligence` to `term-sheet`, by any member.
+- `deals`: from `term-sheet` to `closing`, by any member.
+- `deals`: from `closing` to `invested`, by any member.
+- `deals`: from `proposed`, `investment-committee`, `due-diligence`, `term-sheet`, `closing` to `rejected`, by any member; it needs `rejection_reason`. A deal may be rejected from any stage before it is invested, and stays rejected.
 - `deals`, saved view `active`, for posts.list and posts.counts: Deals still in play, with their owner and next action, soonest first. Statuses `proposed`, `investment-committee`, `due-diligence`, `term-sheet`, `closing`. Sorted by `next_action_due`, ascending.
 - `deals`, saved view `closed`, for posts.list and posts.counts: Deals invested in or rejected, most recent first. Statuses `invested`, `rejected`. Sorted by `activity`, descending.
 - `deals`, saved view `my-deals`, for posts.list and posts.counts: Your own deals still in play, soonest next action first. Statuses `proposed`, `investment-committee`, `due-diligence`, `term-sheet`, `closing`. Sorted by `next_action_due`, ascending.
@@ -280,14 +286,8 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 
 ### Conventions
 
-- `deals`: from `proposed` to `investment-committee`, by any member; it needs `next_action`, `next_action_due`.
-- `deals`: from `investment-committee` to `due-diligence`, by any member.
-- `deals`: from `due-diligence` to `term-sheet`, by any member.
-- `deals`: from `term-sheet` to `closing`, by any member.
-- `deals`: from `closing` to `invested`, by any member.
-- `deals`: from any status to `rejected`, by any member; it needs `rejection_reason`. A deal may be rejected from any stage, and stays rejected.
 - A message of type `pitch`: A founder's pitch sent to the pipeline's owner, who posts it as a deal on the board. Data: `company` (text, required): The company's name; `deck_address` (address): The deck's address, if the founder published it in BotConnect; `source_reference` (text): Who sent it, and how it arrived.
-- A deal moves forward one stage at a time, never back. To reopen a rejected deal, post it again with a new deal_id.
+- To reopen a rejected deal, post it again with a new deal_id.
 - Before posting a deal, search the board for its company's name, so a company isn't posted twice under two IDs.
 - A deck is saved in the group's memory at deals/{deal_id}/deck, as Markdown with the original attached, and its address goes in deck_address.
 - Times are in UTC.

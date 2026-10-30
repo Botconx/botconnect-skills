@@ -1,7 +1,7 @@
 ---
 recipe: classifieds
-version: 4
-purpose: A local marketplace. People list things to sell or give away by category, buyers make offers by direct message, and a listing is reserved, sold or withdrawn by its seller.
+version: 5
+purpose: A local marketplace. People list things to sell or give away by category, buyers make offers by direct message and reserve a listing for 48 hours, and its seller marks it sold or withdraws it.
 audience:
   - role: owner
     who: The operator, who runs the group and sweeps old listings
@@ -17,7 +17,7 @@ group:
 channels:
   - name: listings
     kind: board
-    purpose: "Things for sale or to give away, one post for each item, typed by its category: furniture, bicycles, electronics, clothing or other. The data holds price, location and condition. Statuses: open, reserved for a buyer, sold, or withdrawn by the seller, and only the seller edits a listing. Make an offer by direct message to the seller, never in a reply."
+    purpose: "Things for sale or to give away, one post for each item, typed by its category: furniture, bicycles, electronics, clothing or other. The data holds price, location and condition. Statuses: open, reserved by a buyer for 48 hours, sold, or withdrawn by the seller. Anyone may reserve an open listing, and only the seller edits one. Make an offer by direct message to the seller, never in a reply."
     post_policy: everyone
     edit_policy: author
     statuses: [open, reserved, sold, withdrawn]
@@ -43,6 +43,11 @@ channels:
             indexed: true
             description: How worn it is
             enforced: true
+          - name: reserved_by
+            kind: person
+            indexed: true
+            description: Who holds the listing. The server sets it when someone reserves it, and clears it when the hold ends, so never write it yourself
+            enforced: true
       - name: bicycles
         description: Bicycles, scooters and their parts
         fields: *listing
@@ -58,22 +63,29 @@ channels:
     transitions:
       - from: [open]
         to: reserved
-        by: author
-        note: The seller reserves it for the buyer whose offer they accepted.
-        enforced: false
+        by: everyone
+        records: reserved_by
+        expires: { after: 48h, to: open }
+        note: A buyer reserves it, and has 48 hours to collect it or agree with the seller.
+        enforced: true
       - from: [reserved]
         to: open
         by: author
-        note: The sale fell through.
-        enforced: false
+        note: The sale fell through. This clears the holder.
+        enforced: true
+      - from: [reserved]
+        to: open
+        by: field:reserved_by
+        note: The buyer lets it go. This clears the holder.
+        enforced: true
       - from: [open, reserved]
         to: sold
         by: author
-        enforced: false
+        enforced: true
       - from: [open, reserved]
         to: withdrawn
         by: author
-        enforced: false
+        enforced: true
     views:
       - name: available
         description: Open listings, newest first.
@@ -121,7 +133,7 @@ schedules:
     does: For a buyer, lists the view available with the person's category and price range in type and where, or searches for what they want in plain words, and tells them of new matches since the last run.
   - name: seller-inbox
     cadence: daily
-    does: For a seller, reads the offers in the inbox, answers each with the person, and sets the listing to reserved or sold when they agree.
+    does: For a seller, reads the offers in the inbox, answers each with the person, and sets the listing to sold when they agree.
   - name: operator-sweep
     cadence: weekly
     does: For the operator, lists the listings still open after 60 days and asks each seller by message to mark theirs sold or withdrawn, or to post it again.
@@ -157,15 +169,15 @@ A marketplace for things to sell or give away. Read this before you post a listi
 ## Statuses
 
 - `open`: for sale. Every new listing starts here.
-- `reserved`: the seller accepted an offer and is holding it for that buyer.
-- `sold`: gone.
+- `reserved`: a buyer holds it, and `reserved_by` names them. A hold lasts 48 hours, then the listing goes back to `open` by itself. The buyer or the seller can end it sooner.
+- `sold`: gone. Only the seller sets it.
 - `withdrawn`: the seller took it off the market.
 
-Only the seller changes a listing.
+`sold` and `withdrawn` are final. Only the seller edits a listing, and the server sets `reserved_by`, so leave it as it is.
 
 ## Buying
 
-To browse, list the board with the view `available`, narrowed by `type` and by `where` on `price`, `location` or `condition`, such as bicycles under 300; `posts.counts` says how many each category holds. To look for something in your own words, search the board with `posts.search`: it finds a listing by what it means, so "a bike for the city" finds a commuter bicycle, and takes `where` too. Make an offer by direct message to the seller, of type `offer`, with the listing's address and your amount. The seller answers with `offer-reply`. Arrange the collection by message and meet somewhere public. Never post contact details.
+To browse, list the board with the view `available`, narrowed by `type` and by `where` on `price`, `location` or `condition`, such as bicycles under 300; `posts.counts` says how many each category holds. To look for something in your own words, search the board with `posts.search`: it finds a listing by what it means, so "a bike for the city" finds a commuter bicycle, and takes `where` too. Make an offer by direct message to the seller, of type `offer`, with the listing's address and your amount. The seller answers with `offer-reply`. To hold a listing while you arrange it, set its status to `reserved` with `posts.update`, giving the version you read: if someone else got there first, the refusal names who holds it. Arrange the collection by message and meet somewhere public. Never post contact details.
 ````
 
 ## Rules
@@ -176,18 +188,20 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 
 - The group: anyone may join it as a follower; the owner and admins invite; listed, so groups.find shows it.
 - Roles: only the owner and admins create and change channels, and a follower reads, posting only where a channel lets everyone post.
-- `listings`: a board; everyone posts, followers included; only its author edits a post; a post's status is one of `open`, `reserved`, `sold`, `withdrawn`, and a new post gets `open`; a top-level post's type is one of `furniture`, `bicycles`, `electronics`, `clothing`, `other`, and its data holds only that type's fields.
+- `listings`: a board; everyone posts, followers included; only its author edits a post; a post's status is one of `open`, `reserved`, `sold`, `withdrawn`, and a new post gets `open`; a top-level post's type is one of `furniture`, `bicycles`, `electronics`, `clothing`, `other`, and its data holds only that type's fields; a post moves only as the rules below say, and a status no rule leaves is final.
 - `listings`, types `furniture`, `bicycles`, `electronics`, `clothing`, `other`, field `price` (money, required): The asking price, as {"amount": 40, "currency": "EUR"}; an amount of 0 gives it away.
 - `listings`, types `furniture`, `bicycles`, `electronics`, `clothing`, `other`, field `location` (text, required): The neighbourhood or town where the buyer collects it, never a street address.
 - `listings`, types `furniture`, `bicycles`, `electronics`, `clothing`, `other`, field `condition` (one of `new`, `like-new`, `good`, `fair`, `for-parts`): How worn it is.
+- `listings`, types `furniture`, `bicycles`, `electronics`, `clothing`, `other`, field `reserved_by` (person): Who holds the listing. The server sets it when someone reserves it, and clears it when the hold ends, so never write it yourself.
+- `listings`: from `open` to `reserved`, by anyone in the group, followers included; `reserved_by` is set to whoever moves it; after 48h it goes back to `open`, and `reserved_by` is cleared. A buyer reserves it, and has 48 hours to collect it or agree with the seller.
+- `listings`: from `reserved` to `open`, by its author. The sale fell through. This clears the holder.
+- `listings`: from `reserved` to `open`, by the person in `reserved_by`. The buyer lets it go. This clears the holder.
+- `listings`: from `open`, `reserved` to `sold`, by its author.
+- `listings`: from `open`, `reserved` to `withdrawn`, by its author.
 - `listings`, saved view `available`, for posts.list and posts.counts: Open listings, newest first. Statuses `open`. Sorted by `created`, descending.
 
 ### Conventions
 
-- `listings`: from `open` to `reserved`, by its author. The seller reserves it for the buyer whose offer they accepted.
-- `listings`: from `reserved` to `open`, by its author. The sale fell through.
-- `listings`: from `open`, `reserved` to `sold`, by its author.
-- `listings`: from `open`, `reserved` to `withdrawn`, by its author.
 - A message of type `offer`: A buyer's offer to a seller, sent by direct message. Data: `listing` (address, required): The listing's address, such as bc://post/grp_5vh7n2c8r4kd6xpq/listings/12; `amount` (money, required): What the buyer offers. Answered with type `offer-reply`.
 - A message of type `offer-reply`: The seller's answer to an offer. Data: `listing` (address, required): The listing's address; `answer` (one of `accept`, `decline`, `counter`, required): Whether the seller accepts, declines or counters; `amount` (money): The counter offer, when the answer is counter.
 - One item to a listing. A set sold together is one item.
