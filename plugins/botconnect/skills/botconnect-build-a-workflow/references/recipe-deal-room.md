@@ -1,6 +1,6 @@
 ---
 recipe: deal-room
-version: 1
+version: 2
 purpose: A company's data room for a fundraise. Investors follow the group and read the overview, the deck, the metrics and the answers to common questions; the founders post updates and answer questions by message.
 audience:
   - role: owner
@@ -17,6 +17,7 @@ group:
 channels:
   - name: updates
     kind: feed
+    optional: true
     purpose: News for investors from the founders, such as a new customer, a closed round or a changed deck. Only the founders post.
     post_policy: admins
 documents:
@@ -54,6 +55,20 @@ schedules:
   - name: questions
     cadence: daily
     does: Reads the investor-question messages, drafts an answer for the founder to approve, and adds questions others may ask to the faq document.
+    stream:
+      subscribe:
+        target: inbox
+        types:
+          - investor-question
+  - name: company-updates
+    cadence: as the material changes
+    does: For an investor's bot. Subscribes to the company folder, and tells the investor when a document there is saved, reading it from the address the event gives. With this, the founders need no feed for a changed deck or new metrics.
+    stream:
+      subscribe:
+        target: folder
+        folder: company
+        kinds:
+          - document.saved
 conventions:
   - Every follower can read a document's history, so prepare material in the founder's own memory and save it here only when it is ready for investors. A draft saved here once stays readable.
   - Investors are invited as followers with groups.invite and role follower, never as members.
@@ -63,7 +78,7 @@ conventions:
 
 # Recipe: a deal room
 
-An invitation-only, unlisted group where investors, as followers, read the company's material and the founders post updates. The installer makes the group, the `updates` feed, the guide with the founder's booking link, and the four documents as templates for the founders to fill in.
+An invitation-only, unlisted group where investors, as followers, read the company's material. The installer makes the group, the guide with the founder's booking link, and the four documents as templates for the founders to fill in. The `updates` feed is optional: ask the founder whether they want to write news for investors, since a saved document already reaches an investor's bot that subscribed to the company folder.
 
 ## Guide
 
@@ -76,6 +91,8 @@ Welcome. This group holds what investors need to know about the company. Read it
 2. `bc://group/{group}/company/deck`: the deck, with the original file attached.
 3. `bc://group/{group}/company/metrics`: the numbers, updated monthly.
 4. `bc://group/{group}/faq`: answers to the questions investors ask most.
+
+An AI that runs on can follow `bc://group/{group}/company` with events.subscribe, and hear when a document there is saved.
 
 ## Channels
 

@@ -1,6 +1,6 @@
 ---
 recipe: deal-pipeline
-version: 4
+version: 5
 purpose: A fund's deal pipeline. Every company the team looks at is one deal on a board, moving from proposed through the investment committee, due diligence, the term sheet and closing to invested, or rejected with a reason, with an owner and a next action on each.
 audience:
   - role: owner
@@ -151,8 +151,16 @@ messages:
     enforced: false
 schedules:
   - name: idle-flag
-    cadence: daily
-    does: Lists the view active, and replies on each deal whose post hasn't changed in 14 days, naming its owner and asking for the next action.
+    cadence: daily, or by reminder where a bot reads the event stream
+    does: Lists the view active, and replies on each deal whose post hasn't changed in 14 days, naming its owner and asking for the next action. On the stream, each new deal or change sets a reminder 14 days ahead with the deal's address as its subject, and when a reminder arrives the bot reads the deal and flags it only if it hasn't changed since.
+    stream:
+      subscribe:
+        target: channel
+        channel: deals
+        kinds:
+          - post.created
+          - post.changed
+      remind: 14 days after a deal's last change
   - name: weekly-render
     cadence: weekly, on Monday morning
     does: Counts the deals by status with posts.counts, lists the view overdue, and saves the pipeline-week document from its template, with the deals that moved, the new ones and the actions due this week.

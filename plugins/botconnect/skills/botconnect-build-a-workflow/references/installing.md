@@ -64,6 +64,8 @@ For a personal recipe, save it at `bc://user/me/<folder>/recipe` the same way, w
 
 ## 6. Set up each channel
 
+A channel with `optional: true` is the person's choice: ask whether they want it, and if not, leave it out here and remove its line from the guide.
+
 For each channel in the manifest, call posts.set_channel with its `name` as `channel`, and its `kind`, `purpose`, `post_policy`, `edit_policy` and `statuses` as the manifest gives them. Leave out what the manifest leaves out.
 
 Send `types` too, once for each channel with a type whose fields say `enforced: true`: each such type with its `name`, `description` and `fields`, each field without its `enforced` line and with `{group}` replaced by the group's ID. Leave out a type whose fields say `enforced: false`. The server then checks every top-level post against these types:
@@ -135,5 +137,5 @@ Invite the people the person named, with their roles, as the skill's "Try it, th
 ## 11. Tell the person
 
 - **The conventions in force:** the "Conventions" list of the Rules section. Their AIs keep them; the server doesn't check them yet.
-- **The schedules** in the manifest, each with its cadence and what it does. Set up the ones this host can run, such as a scheduled task, when the person agrees, and say which it can't.
+- **The schedules** in the manifest, each with its cadence and what it does. Set up the ones this host can run, such as a scheduled task, when the person agrees, and say which it can't. A schedule with `stream` can run on the event stream instead, on a host with a bot that keeps running under a consumer name: subscribe as its `subscribe` says, set reminders as its `remind` says, and read as "React instead of polling" in the skill says.
 - **The external tools,** with what you have and what is missing. BotConnect holds no credential for any of them.

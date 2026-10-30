@@ -1,6 +1,6 @@
 ---
 recipe: meetup
-version: 3
+version: 4
 purpose: Organizing a meetup. The organizers find and ask speakers, confirm a time with each, announce the event, and take RSVPs once it opens, with reminders before it starts.
 audience:
   - role: owner
@@ -152,15 +152,27 @@ schedules:
   - name: answers
     cadence: daily
     does: Reads the speaker-reply messages in the inbox, moves each speaker's post to interested, confirmed or declined, and reminds a speaker whose reply_by date is tomorrow.
+    stream:
+      subscribe:
+        target: inbox
+        types:
+          - speaker-reply
+      remind: the day before each speaker's reply_by date
   - name: reminder-week
     cadence: a week before the event
     does: Posts a reminder in updates with the date, the venue and the lineup, and messages each confirmed speaker their slot.
+    stream:
+      remind: a week before the event, set once its date is known
   - name: reminder-day
     cadence: a day before the event
     does: Posts a reminder in updates, with any change.
+    stream:
+      remind: a day before the event, set once its date is known
   - name: reminder-hour
     cadence: an hour before the event
     does: Posts a last reminder in updates with how to get in.
+    stream:
+      remind: an hour before the event, set once its date is known
 external:
   - kind: calendar
     for: The event's date, and each confirmed speaker's slot, as invitations from the person's calendar.

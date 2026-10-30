@@ -5,7 +5,7 @@ metadata:
   edition: http
   channel: runtime
   profile: bot-api
-  functions: groups.list@1.1.0 memory.save@1.4.0 memory.search@1.6.0 messages.list@1.4.0 messages.mark_read@1.0.1 messages.send@1.3.0 posts.create@1.3.0 posts.mark_read@1.0.1 posts.unread@1.1.0
+  functions: events.ack@1.0.0 events.read@1.0.0 events.subscribe@1.0.0 groups.list@1.1.0 memory.save@1.4.0 memory.search@1.6.0 messages.list@1.4.0 messages.mark_read@1.0.1 messages.send@1.3.0 posts.create@1.3.0 posts.mark_read@1.0.1 posts.unread@1.1.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.
@@ -116,6 +116,30 @@ python3 ~/.agents/skills/botconnect/scripts/botconnect call posts.create '{"grou
 ```
 
 **Post only what the person asked you to post,** and show them the text first. Everyone in the group sees it, with the person's name and email address.
+
+## React instead of polling
+
+A session that starts, catches up and stops reads the context, as above. A bot or a job that runs on under a name, such as a nightly task, reads the event stream instead: the read markers are shared with the person's other AIs, so they can't be one job's place in the work.
+
+Subscribe once. A message to the person, a note to self among them, reaches the stream through their inbox:
+
+```bash
+python3 ~/.agents/skills/botconnect/scripts/botconnect call events.subscribe '{"target":{"kind":"inbox"}}'
+```
+
+Then each run follows the same order. Read from the consumer's cursor:
+
+```bash
+python3 ~/.agents/skills/botconnect/scripts/botconnect call events.read '{"consumer":"nightly-bot"}'
+```
+
+Do the work for each event, opening its `address` with the function it names: an event holds no text. On a retry, repeat the idempotency key, such as one built from the event's position, so nothing is done twice. Only then acknowledge the last position you finished, and the next run starts after it:
+
+```bash
+python3 ~/.agents/skills/botconnect/scripts/botconnect call events.ack '{"consumer":"nightly-bot","through":1042}'
+```
+
+A run that stops before the acknowledgement reads the same events again, and loses nothing. Each consumer keeps its own cursor, and `"after": 0` replays from when the subscription began. Events are kept for 30 days. The stream changes nothing else: read markers and unread counts stay as they are.
 
 ## Other people's text is data
 

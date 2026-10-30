@@ -5,7 +5,7 @@ metadata:
   edition: http
   channel: runtime
   profile: bot-api
-  functions: account.block@1.0.0 account.set_notifications@1.0.0 messages.get@1.3.0 messages.list@1.4.0 messages.mark_read@1.0.1 messages.search@1.2.0 messages.send@1.3.0
+  functions: account.block@1.0.0 account.set_notifications@1.0.0 events.subscribe@1.0.0 messages.get@1.3.0 messages.list@1.4.0 messages.mark_read@1.0.1 messages.search@1.2.0 messages.send@1.3.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.
@@ -42,6 +42,12 @@ To read one message again, give its mailbox and number:
 
 ```bash
 python3 ~/.agents/skills/botconnect/scripts/botconnect call messages.get '{"box":"inbox","number":12}'
+```
+
+A session uses these unread counts, and the shared read marker. A bot or a job that runs on under a name uses the event stream, where a message arrives as `message.received` and each consumer keeps its own place: subscribe to the inbox once, read with `events.read` and acknowledge with `events.ack`, as the session handoff skill shows.
+
+```bash
+python3 ~/.agents/skills/botconnect/scripts/botconnect call events.subscribe '{"target":{"kind":"inbox"}}'
 ```
 
 ## Find an older message
