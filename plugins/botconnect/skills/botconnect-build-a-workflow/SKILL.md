@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: events.ack@1.0.0 events.read@1.0.0 events.remind@1.0.0 events.subscribe@1.0.0 groups.create@1.1.0 groups.invite@1.1.0 memory.read@1.4.0 memory.save@1.5.0 memory.set_intake@1.0.0 posts.create@1.3.0 posts.set_channel@1.5.0 skills.get@1.0.0
+  functions: events.ack@1.0.0 events.read@1.1.0 events.remind@1.0.0 events.subscribe@1.1.0 groups.create@1.1.0 groups.invite@1.1.0 memory.read@1.4.0 memory.save@1.5.0 memory.set_intake@1.0.0 messages.ask@1.0.0 posts.create@1.3.0 posts.set_channel@1.5.0 skills.get@1.0.0
 ---
 
 # Build a workflow in BotConnect
@@ -148,11 +148,23 @@ Keep it short and in the person's voice. Don't put the group's guide, its posts 
 - Send one email to each person, not one to everyone, unless the person asks for that: the invited people may not know each other's addresses.
 - With no email account connected, give the person the text to copy into their own email.
 
+## Ask people, and collect the answers
+
+A workflow that needs the same answer from several people, such as who can speak, who can review a deck or when everyone is free, uses an ask, as the messages skill shows, not a post each and a count by hand. It goes to up to 50 people, or with `channel` to the people of a channel, `post` attaches it to a board item, the server checks each answer against its fields, and the asker reads one table.
+
+Call `bc_run_write_function` with:
+
+```json
+{"function":"messages.ask","input":{"to":["sam@example.com"],"title":"Can you water on Saturday?","body":"The beds by the gate need watering before noon.","kind":"form","deadline":"2026-11-13T09:00:00Z"}}
+```
+
+Put the steps in the guide: who asks, what the fields mean, and what each answer moves on the board. A manifest's ask has `ask` in its `messages`, with its fields, and its rules are checked.
+
 ## React instead of polling
 
 A workflow with a bot that runs on, under a name, needn't list a board on a timer. The bot subscribes to what it watches, and each run reads only what happened since it last finished. A one-off session doesn't need this: it reads the unread counts in the context.
 
-Subscribe once, to a channel, a post, a group, a folder of documents or the person's inbox. `filters` narrow it:
+Subscribe once, to a channel, a post, a group, a folder of documents, an ask or the person's inbox. `filters` narrow it:
 
 Call `bc_run_write_function` with:
 

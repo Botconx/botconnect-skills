@@ -1,6 +1,6 @@
 ---
 recipe: meetup
-version: 4
+version: 5
 purpose: Organizing a meetup. The organizers find and ask speakers, confirm a time with each, announce the event, and take RSVPs once it opens, with reminders before it starts.
 audience:
   - role: owner
@@ -19,7 +19,7 @@ group:
 channels:
   - name: speakers
     kind: board
-    purpose: "One post for each possible speaker, of type speaker, titled with their name and topic. Statuses: candidate, asked once a speaker-ask message went out, interested, confirmed with a slot, or declined. Any member updates a speaker's post as answers come in."
+    purpose: "One post for each possible speaker, of type speaker, titled with their name and topic. Statuses: candidate, asked once a speaker-ask went out, interested, confirmed with a slot, or declined. Any member updates a speaker's post as answers come in."
     post_policy: members
     edit_policy: members
     statuses: [candidate, asked, interested, confirmed, declined]
@@ -38,7 +38,7 @@ channels:
             enforced: true
           - name: request_id
             kind: text
-            description: The ID of the speaker-ask message sent to them, such as ask-2026-11-1
+            description: The ID of the speaker-ask sent to them, such as ask_8kq2m4x9c7tb3wzn
             enforced: true
           - name: slot
             kind: datetime
@@ -100,64 +100,25 @@ documents:
     template: "Template: event"
 messages:
   - type: speaker-ask
-    description: An organizer asks a possible speaker to talk, offering time slots.
+    ask: availability
+    description: An organizer asks a possible speaker to talk, with up to three slots, the organizer's time zone and a deadline, attached to their post on the speakers board. They answer yes, tentative or no, with the slots they can make.
     fields:
-      - name: event
-        kind: address
-        required: true
-        description: The event document's address, bc://group/{group}/event
-        enforced: false
-      - name: request_id
+      - name: focus
         kind: text
         required: true
-        description: An ID for this ask, which the reply repeats, such as ask-2026-11-1
-        enforced: false
-      - name: slots
-        kind: text
-        required: true
-        description: The slots offered, in UTC and comma-separated, such as 2026-11-20T18:00:00Z, 2026-11-20T18:30:00Z
-        enforced: false
-      - name: zone
-        kind: text
-        required: true
-        description: The organizer's time zone, such as Europe/Lisbon, so the speaker reads the slots in local time
-        enforced: false
-      - name: reply_by
-        kind: date
-        required: true
-        description: The date by which the organizers need an answer
-        enforced: false
-    reply: speaker-reply
-    enforced: false
-  - type: speaker-reply
-    description: A speaker's answer to a speaker-ask.
-    fields:
-      - name: request_id
-        kind: text
-        required: true
-        description: The request_id of the ask it answers
-        enforced: false
-      - name: answer
-        kind: enum
-        values: [yes, no, maybe]
-        required: true
-        description: Whether they will speak
-        enforced: false
-      - name: slot
-        kind: datetime
-        description: The slot they choose, from those offered, in UTC
-        enforced: false
-    enforced: false
+        description: What they would talk about
+        enforced: true
+    enforced: true
 schedules:
   - name: answers
     cadence: daily
-    does: Reads the speaker-reply messages in the inbox, moves each speaker's post to interested, confirmed or declined, and reminds a speaker whose reply_by date is tomorrow.
+    does: "Reads the table of each open speaker-ask with messages.responses, and moves each speaker's post: interested for yes or tentative, declined for no. Reminds a speaker who hasn't answered the day before the deadline. Once the organizers choose a time, messages.confirm asks that speaker to confirm it, and their yes moves the post to confirmed, with its slot."
     stream:
       subscribe:
         target: inbox
-        types:
-          - speaker-reply
-      remind: the day before each speaker's reply_by date
+        kinds:
+          - ask.responded
+      remind: the day before each speaker-ask's deadline
   - name: reminder-week
     cadence: a week before the event
     does: Posts a reminder in updates with the date, the venue and the lineup, and messages each confirmed speaker their slot.
@@ -180,7 +141,7 @@ external:
     for: Announcing the event and its speakers, from the person's account, when they ask.
 conventions:
   - The group stays invitation-only while the lineup is made. The owner opens it with groups.update and join_policy open once the speakers are confirmed, so people can follow and RSVP.
-  - A speaker-ask offers at most three slots, in UTC with the sender's time zone, and a reply_by date.
+  - A speaker-ask offers at most three slots, and goes to one speaker at a time, so each has a table of their own.
   - The event document is the one source of the date, time and venue; an update in the feed says what changed in it.
 ---
 
@@ -207,9 +168,9 @@ How the organizers plan the meetup, and how people RSVP. Read it before you post
 A speaker's post is of type `speaker`, titled with their name and topic, with `speaker`, `topic`, `request_id` and `slot` in its data.
 
 - `candidate`: someone we might ask.
-- `asked`: a `speaker-ask` message went out, with up to three slots in UTC, the organizer's time zone and a reply-by date. Its `request_id` goes in the post.
-- `interested`: they said yes or maybe.
-- `confirmed`: they have a slot.
+- `asked`: a `speaker-ask` went out with messages.ask, with up to three slots, the organizer's time zone, a deadline and this post as its `post`. Its ID goes in the post as `request_id`.
+- `interested`: they said yes or tentative. Read the answers with messages.responses.
+- `confirmed`: they said yes to the slot messages.confirm settled, and the post holds it.
 - `declined`: they can't.
 
 ## RSVPs
@@ -248,13 +209,14 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 - `speakers`: a board; members post, and followers only read; any member edits a post; a post's status is one of `candidate`, `asked`, `interested`, `confirmed`, `declined`, and a new post gets `candidate`; a top-level post's type is one of `speaker`, and its data holds only that type's fields.
 - `speakers`, type `speaker`, field `speaker` (person, required): The speaker, by person ID or email address.
 - `speakers`, type `speaker`, field `topic` (text): What they would talk about.
-- `speakers`, type `speaker`, field `request_id` (text): The ID of the speaker-ask message sent to them, such as ask-2026-11-1.
+- `speakers`, type `speaker`, field `request_id` (text): The ID of the speaker-ask sent to them, such as ask_8kq2m4x9c7tb3wzn.
 - `speakers`, type `speaker`, field `slot` (datetime): The confirmed start of their talk, in UTC.
 - `speakers`, saved view `lineup`, for posts.list and posts.counts: The confirmed speakers, in the order they speak. Statuses `confirmed`. Sorted by `slot`, ascending.
 - `updates`: a feed; only the owner and admins post.
 - `rsvps`: a board; everyone posts, followers included; only its author edits a post; a post's status is one of `going`, `maybe`, `cancelled`, and a new post gets `going`; a top-level post's type is one of `rsvp`, and its data holds only that type's fields.
 - `rsvps`, type `rsvp`, field `guests` (number): How many people they bring besides themselves, 0 by default.
 - `rsvps`, saved view `coming`, for posts.list and posts.counts: Who is coming, and how many guests they bring. Statuses `going`. Sorted by `created`, ascending.
+- An ask, `speaker-ask`, sent with messages.ask as an availability ask: An organizer asks a possible speaker to talk, with up to three slots, the organizer's time zone and a deadline, attached to their post on the speakers board. They answer yes, tentative or no, with the slots they can make. Fields: `focus` (text, required): What they would talk about. An answer that doesn't fit is refused, a second replaces the first, and after the deadline only a decline is taken.
 
 ### Conventions
 
@@ -262,8 +224,6 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 - `speakers`: from `asked` to `interested`, by any member.
 - `speakers`: from `asked`, `interested` to `declined`, by any member.
 - `speakers`: from `interested` to `confirmed`, by any member; it needs `slot`.
-- A message of type `speaker-ask`: An organizer asks a possible speaker to talk, offering time slots. Data: `event` (address, required): The event document's address, bc://group/{group}/event; `request_id` (text, required): An ID for this ask, which the reply repeats, such as ask-2026-11-1; `slots` (text, required): The slots offered, in UTC and comma-separated, such as 2026-11-20T18:00:00Z, 2026-11-20T18:30:00Z; `zone` (text, required): The organizer's time zone, such as Europe/Lisbon, so the speaker reads the slots in local time; `reply_by` (date, required): The date by which the organizers need an answer. Answered with type `speaker-reply`.
-- A message of type `speaker-reply`: A speaker's answer to a speaker-ask. Data: `request_id` (text, required): The request_id of the ask it answers; `answer` (one of `yes`, `no`, `maybe`, required): Whether they will speak; `slot` (datetime): The slot they choose, from those offered, in UTC.
 - The group stays invitation-only while the lineup is made. The owner opens it with groups.update and join_policy open once the speakers are confirmed, so people can follow and RSVP.
-- A speaker-ask offers at most three slots, in UTC with the sender's time zone, and a reply_by date.
+- A speaker-ask offers at most three slots, and goes to one speaker at a time, so each has a table of their own.
 - The event document is the one source of the date, time and venue; an update in the feed says what changed in it.
