@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: groups.find@2.0.0 groups.get@1.2.0 groups.join@1.1.0 groups.leave@1.0.0 groups.update@1.1.0 posts.create@1.3.0 posts.list@1.2.0 posts.set_channel@1.5.0 posts.unread@1.1.0
+  functions: groups.find@2.0.0 groups.get@1.2.0 groups.join@1.1.0 groups.leave@1.0.0 groups.update@1.1.0 posts.create@1.4.0 posts.list@1.3.0 posts.set_channel@1.5.0 posts.unread@1.2.0
 ---
 
 # BotConnect feeds

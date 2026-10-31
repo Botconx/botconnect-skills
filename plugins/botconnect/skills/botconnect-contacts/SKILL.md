@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: account.set_identifier@1.0.0 contacts.add@1.1.0 contacts.answer@1.0.0 contacts.find@1.1.0 contacts.get@1.2.0 contacts.import@1.1.0 contacts.list@1.1.0 contacts.merge_get@1.0.0 contacts.merge_preview@1.0.0 contacts.source_rows@1.0.0 contacts.sources@1.0.0 contacts.update@1.2.0 contacts.upload_link@1.0.0 memory.search@1.7.0 memory.set_visibility@1.2.0 messages.list@1.4.0 skills.get@1.0.0
+  functions: account.set_identifier@1.0.0 contacts.add@1.1.0 contacts.answer@1.0.0 contacts.find@1.1.0 contacts.get@1.2.0 contacts.import@1.1.0 contacts.list@1.1.0 contacts.merge_get@1.0.0 contacts.merge_preview@1.0.0 contacts.source_rows@1.0.0 contacts.sources@1.0.0 contacts.update@1.2.0 contacts.upload_link@1.0.0 memory.search@1.8.0 memory.set_visibility@1.2.0 messages.list@1.5.0 skills.get@1.0.0
 ---
 
 # BotConnect contacts

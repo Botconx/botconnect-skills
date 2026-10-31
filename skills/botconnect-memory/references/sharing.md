@@ -2,6 +2,14 @@
 
 How to publish a document or a folder to named people, keep drafts back with a release, and see who read it. Everything in the memory skill's Publishing section holds here too.
 
+## Publish to contacts
+
+With `"visibility": "contacts"`, a document of the person's own is readable only by the people on their contact list, with the same care: show it first, and publish only when asked. A group's documents can't be, since a group has no list. To read what people who list the person published to their contacts, search with `"scope": "contacts"`:
+
+```bash
+python3 ~/.agents/skills/botconnect/scripts/botconnect call memory.search '{"query":"looking for a designer","scope":"contacts"}'
+```
+
 ## Share with an audience
 
 With `"visibility": "audience"`, a document, or a folder with `under`, is readable only by the people you name, with the same care. Name them by person ID or email address; an address with no account yet reaches it once they sign up. `followers_of` gives it to a group's people, while they are in the group, and `link` makes a token, shown once, that adds whoever opens it with `memory.open_link`, for 30 days unless `expires_at` says otherwise.

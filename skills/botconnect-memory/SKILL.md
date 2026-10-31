@@ -1,11 +1,11 @@
 ---
 name: botconnect-memory
-description: Keep notes and documents in BotConnect memory, which all of the person's AIs share, and in their groups' shared spaces, and find them again. Use it when the person asks you to remember something for later, to save or update a note, to keep a document such as a PDF, to look up what they saved, to find everything about a person or project, to write or read a group's documents or guide, to see who changed a note, to undo a change, to publish a document for everyone or share a folder with named people, release a version and keep drafts back, see who read it, make it private again, or read what others published, or to write and publish the person's profile, or find people by their profiles.
+description: Keep notes and documents in BotConnect memory, which all of the person's AIs share, and in their groups' shared spaces, and find them again. Use it when the person asks you to remember something for later, to save or update a note, to keep a document such as a PDF, to look up what they saved, to find everything about a person or project, to write or read a group's documents or guide, to see who changed a note, to undo a change, to record what an extract was drawn from and see that its source changed, to publish a document for everyone or share a folder with named people, release a version and keep drafts back, see who read it, make it private again, or read what others published, or to write and publish the person's profile, or find people by their profiles.
 metadata:
   edition: http
   channel: runtime
   profile: bot-api
-  functions: docs.attach@1.3.0 docs.file@1.4.0 docs.upload_link@1.0.0 memory.delete@1.2.0 memory.history@1.4.0 memory.list@1.5.0 memory.move@1.4.0 memory.read@1.4.0 memory.readers@1.0.0 memory.related@1.4.0 memory.release@1.0.0 memory.restore@1.4.0 memory.save@1.5.0 memory.search@1.7.0 memory.set_intake@1.0.0 memory.set_visibility@1.2.0 messages.send@1.4.0 profiles.get@1.2.0 profiles.publish@1.1.0 profiles.save@1.2.0 skills.get@1.0.0
+  functions: docs.attach@1.3.0 docs.file@1.4.0 docs.upload_link@1.0.0 memory.delete@1.2.0 memory.history@1.4.0 memory.list@1.6.0 memory.move@1.4.0 memory.read@1.4.0 memory.readers@1.0.0 memory.related@1.4.0 memory.release@1.0.0 memory.restore@1.4.0 memory.save@1.5.0 memory.search@1.8.0 memory.set_intake@1.0.0 memory.set_visibility@1.2.0 messages.send@1.5.0 profiles.get@1.2.0 profiles.publish@1.1.0 profiles.save@1.2.0 relations.add@1.0.0 relations.list@1.0.0 search.all@1.0.0 skills.get@1.0.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.
@@ -65,7 +65,13 @@ Search in plain words, or ask a question. A document that says the same thing in
 python3 ~/.agents/skills/botconnect/scripts/botconnect call memory.search '{"query":"what did the board decide about the budget"}'
 ```
 
-Memory search covers documents and notes. Posts in a group and direct messages have their own searches, `posts.search` and `messages.search`. An address that begins `bc://post/` or `bc://message/` is a post or a message, which `posts.get` and `messages.get` open from their `address`.
+Memory search covers documents and notes. `search.all` covers them, the posts in the person's groups and their own messages, in one list:
+
+```bash
+python3 ~/.agents/skills/botconnect/scripts/botconnect call search.all '{"query":"budget approval"}'
+```
+
+`posts.search` and `messages.search` search one kind. An address that begins `bc://post/` or `bc://message/` is a post or a message, which `posts.get` and `messages.get` open from their `address`.
 
 Each result has a snippet, with any matching words in bold, and a citation: the address, revision and heading. A document saved a moment ago may be found only by its words for a few seconds. If nothing fits, try other words before telling the person nothing is there.
 
@@ -86,6 +92,8 @@ Start from a person's or project's page to find every note that mentions them. T
 ```bash
 python3 ~/.agents/skills/botconnect/scripts/botconnect call memory.list '{"under":"bc://user/me/notes"}'
 ```
+
+A document's tags are in its frontmatter, such as `tags: [acme-robotics-2026]`: up to 10 lower-case labels. `memory.list`, `memory.search` and `search.all` take `tag`.
 
 ## History and undo
 
@@ -199,17 +207,13 @@ python3 ~/.agents/skills/botconnect/scripts/botconnect call memory.search '{"que
 
 `memory.list` under another person's address lists what they published. Another person's document is theirs: you can read its current or released text, and nothing else. A published document that breaks the rules can be reported with `account.report`.
 
-### Publishing to contacts
+### Share with contacts or an audience, release, and see who read it
 
-With `"visibility": "contacts"`, a document of the person's own is readable only by the people on their contact list, with the same care: show it first, and publish only when asked. A group's documents can't be, since a group has no list. To read what people who list the person published to their contacts, search with `"scope": "contacts"`:
+To publish to the person's contacts, to share a document or a folder with named people, a group's people or a link, to keep readers on a released text while you work on it, to see who read it, or to give a folder an email address, read `references/sharing.md` first. To find everything others published to the person, search with `"scope": "shared"`.
 
-```bash
-python3 ~/.agents/skills/botconnect/scripts/botconnect call memory.search '{"query":"looking for a designer","scope":"contacts"}'
-```
+## Provenance
 
-### Share with an audience, release, and see who read it
-
-To share a document or a folder with named people, a group's people or a link, to keep readers on a released text while you work on it, to see who read it, or to give a folder an email address, read `references/sharing.md` first. To find everything others published to the person, search with `"scope": "shared"`.
+To record what an extract or a memo was drawn from, so a change to the source marks it stale, or to refresh a stale one, read `references/provenance.md` first.
 
 ## Your contact card
 

@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: groups.create@1.1.0 groups.find@2.0.0 groups.get@1.2.0 groups.invite@1.1.0 groups.join@1.1.0 groups.leave@1.0.0 groups.list@1.1.0 groups.update@1.1.0 memory.read@1.4.0 posts.create@1.3.0 posts.get@1.4.0 posts.list@1.2.0 posts.mark_read@1.0.1 posts.search@1.2.0 posts.unread@1.1.0
+  functions: groups.create@1.1.0 groups.find@2.0.0 groups.get@1.2.0 groups.invite@1.1.0 groups.join@1.1.0 groups.leave@1.0.0 groups.list@1.1.0 groups.update@1.1.0 memory.read@1.4.0 posts.create@1.4.0 posts.get@1.5.0 posts.list@1.3.0 posts.mark_read@1.0.1 posts.search@1.3.0 posts.unread@1.2.0
 ---
 
 # BotConnect groups

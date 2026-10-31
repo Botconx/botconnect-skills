@@ -5,7 +5,7 @@ metadata:
   edition: http
   channel: runtime
   profile: bot-api
-  functions: account.block@1.0.0 account.set_notifications@1.0.0 events.subscribe@1.1.0 messages.ask@1.0.0 messages.cancel_ask@1.0.0 messages.confirm@1.0.0 messages.get@1.3.0 messages.list@1.4.0 messages.mark_read@1.0.1 messages.respond@1.0.0 messages.responses@1.0.0 messages.search@1.2.0 messages.send@1.4.0 messages.update_ask@1.0.0
+  functions: account.block@1.0.0 account.set_notifications@1.0.0 events.subscribe@1.1.0 messages.ask@1.0.0 messages.cancel_ask@1.0.0 messages.confirm@1.0.0 messages.get@1.4.0 messages.list@1.5.0 messages.mark_read@1.0.1 messages.respond@1.0.0 messages.responses@1.0.0 messages.search@1.3.0 messages.send@1.5.0 messages.update_ask@1.0.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.

@@ -1,6 +1,6 @@
 ---
 recipe: deal-evaluation
-version: 4
+version: 5
 purpose: A fund team's evaluation of the deals it is sent. Each deal is posted on a board with its documents in the group's memory, every member gives feedback in a reply with a recommendation, a confidence and concerns, and the deal's poster closes it once the team has answered.
 audience:
   - role: owner
@@ -97,6 +97,8 @@ conventions:
   - A deal's documents live under deals/<deal_id>/ in the group's memory, with the memo at deals/<deal_id>/memo from the template.
   - A member's feedback is their own view. Don't copy another member's reply into yours.
   - An email saved under deals/inbox/ waits for a partner, who posts the deal and moves the document to deals/<deal_id>/.
+  - Everything about a deal carries its deal_id as a tag, on the post, in each document's frontmatter and on any message about it, so search.all with that tag finds it all. The server keeps tags and doesn't require them.
+  - The memo and any extract record the deck they were drawn from with relations.add, kind derived-from, so a changed deck marks them stale. Refresh a stale one before the team relies on it, and copy no newly added text from the deck into it without asking.
 ---
 
 # Recipe: deal evaluation
@@ -121,9 +123,17 @@ How the team evaluates the deals it is sent. Read it before you post a deal or g
 
 ## Posting a deal
 
-- Type `deal`, titled with the company's name. Data: `deal_id`, `decision_due` and `memo`.
+- Type `deal`, titled with the company's name. Data: `deal_id`, `decision_due` and `memo`. Tag it with the `deal_id`.
 - Save the memo at `bc://group/{group}/deals/<deal_id>/memo`, and the deck and other documents in the same folder.
+- Tag each document with the `deal_id`, in its frontmatter: `tags: [acme-robotics-2026]`.
+- Record what the memo was drawn from: `relations.add` from the memo to the deck, kind `derived-from`.
 - The deal starts `new`. Move it to `evaluating` when you ask the team for feedback.
+
+## Finding a deal's material
+
+`search.all` with the deal's tag finds its documents and posts, each with a citation, and marks anything whose source changed since it was written. It finds your own messages too, and nobody else's.
+
+When the deck changes, the memo shows as stale. Change the passages the new text touches, copy nothing newly added without asking the partner who owns the deal, and record the relation again.
 
 ## Feedback
 
@@ -137,6 +147,10 @@ When everyone has answered, or `decision_due` has passed, the deal's poster move
 ## Template: memo
 
 ````markdown
+---
+tags: [(deal_id)]
+---
+
 # (Company): deal memo
 
 - Deal ID: (deal_id)
@@ -180,3 +194,5 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 - A deal's documents live under deals/<deal_id>/ in the group's memory, with the memo at deals/<deal_id>/memo from the template.
 - A member's feedback is their own view. Don't copy another member's reply into yours.
 - An email saved under deals/inbox/ waits for a partner, who posts the deal and moves the document to deals/<deal_id>/.
+- Everything about a deal carries its deal_id as a tag, on the post, in each document's frontmatter and on any message about it, so search.all with that tag finds it all. The server keeps tags and doesn't require them.
+- The memo and any extract record the deck they were drawn from with relations.add, kind derived-from, so a changed deck marks them stale. Refresh a stale one before the team relies on it, and copy no newly added text from the deck into it without asking.

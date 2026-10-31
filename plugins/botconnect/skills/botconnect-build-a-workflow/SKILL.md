@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: events.ack@1.0.0 events.read@1.1.0 events.remind@1.0.0 events.subscribe@1.1.0 groups.create@1.1.0 groups.invite@1.1.0 memory.read@1.4.0 memory.save@1.5.0 memory.set_intake@1.0.0 messages.ask@1.0.0 posts.create@1.3.0 posts.set_channel@1.5.0 skills.get@1.0.0
+  functions: events.ack@1.0.0 events.read@1.1.0 events.remind@1.0.0 events.subscribe@1.1.0 groups.create@1.1.0 groups.invite@1.1.0 memory.read@1.4.0 memory.save@1.5.0 memory.set_intake@1.0.0 messages.ask@1.0.0 posts.create@1.4.0 posts.set_channel@1.5.0 search.all@1.0.0 skills.get@1.0.0
 ---
 
 # Build a workflow in BotConnect
@@ -197,6 +197,18 @@ Call `bc_run_write_function` with:
 ```
 
 Nothing is pushed: something must run the bot, such as a scheduled task. What a person can't read any more stops reaching their stream at once. Events are kept for 30 days.
+
+## Tag and trace what a workflow holds
+
+Material about one thing, such as a deal, is spread across a board item, documents and messages. Choose one tag for it, such as the deal's ID, and put it on each: `tags` on a post or a message, and `tags` in a document's frontmatter. Say so in the guide. Then one search finds it all, each result under its own permissions, so a colleague gets the documents and posts and never another person's messages:
+
+Call `bc_run_read_function` with:
+
+```json
+{"function":"search.all","input":{"query":"gross margin","tag":"acme-robotics-2026"}}
+```
+
+An extract or a memo written from a source records it with `relations.add`, as the memory skill's `references/provenance.md` shows, so a changed source marks it stale. The server keeps tags and relations and doesn't require them, so a recipe's rule for them is a convention.
 
 ## Change a workflow
 

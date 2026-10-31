@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: docs.file@1.4.0 docs.upload_link@1.0.0 memory.read@1.4.0 posts.channels@1.5.0 posts.counts@1.0.0 posts.create@1.3.0 posts.get@1.4.0 posts.intake@1.0.0 posts.list@1.2.0 posts.search@1.2.0 posts.set_channel@1.5.0 posts.update@1.2.0
+  functions: docs.file@1.4.0 docs.upload_link@1.0.0 memory.read@1.4.0 posts.channels@1.5.0 posts.counts@1.0.0 posts.create@1.4.0 posts.get@1.5.0 posts.intake@1.1.0 posts.list@1.3.0 posts.search@1.3.0 posts.set_channel@1.5.0 posts.update@1.3.0
 ---
 
 # BotConnect boards
@@ -190,6 +190,8 @@ Call `bc_run_read_function` with:
 ```json
 {"function":"posts.counts","input":{"group":"grp_8kq2m4x9c7tb3wzn","channel":"tasks","by":"status"}}
 ```
+
+`tags` on a post, up to 10 labels such as a deal's ID, find it across channels: `posts.create` and `posts.update` set them, and `posts.list` and `posts.search` take `tag`. To find something in documents and messages as well, use `search.all`.
 
 To find an item, search the board, or every group the person is in. Search finds an item by its words and by what it means, so ask in plain words: "a bike for the city" finds a listing for a commuter bicycle. An item written a moment ago, and a reply, may be found only by their words. The results carry each item's address, and `total` says how many match, up to 1,000. In one channel, `where` narrows a search by its fields. A search returns only the best matches, so for an inventory, such as everything for sale, list or count instead:
 
