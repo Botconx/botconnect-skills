@@ -1,6 +1,6 @@
 ---
 recipe: deal-pipeline
-version: 6
+version: 7
 purpose: A fund's deal pipeline. Every company the team looks at is one deal on a board, moving from proposed through the investment committee, due diligence, the term sheet and closing to invested, or rejected with a reason, with an owner and a next action on each.
 audience:
   - role: owner
@@ -68,6 +68,14 @@ channels:
             kind: text
             description: Why the fund passed, in a sentence. Set when the deal moves to rejected
             enforced: true
+          - name: from
+            kind: text
+            description: The address of whoever sent the deal, when it arrived by email
+            enforced: true
+          - name: source
+            kind: text
+            description: How it arrived, "email" when it came to the board's intake address
+            enforced: true
     transitions:
       - from: [proposed]
         to: investment-committee
@@ -124,6 +132,7 @@ channels:
         statuses: [investment-committee]
         fields: [title, owner, next_action, next_action_due]
         sort: { field: next_action_due, order: asc }
+    intake: true
 documents:
   - path: pipeline-week
     title: The pipeline this week
@@ -171,6 +180,7 @@ conventions:
   - To reopen a rejected deal, post it again with a new deal_id.
   - Before posting a deal, search the board for its company's name, so a company isn't posted twice under two IDs.
   - A deck's file goes on the deal's item, up to 50 MB, and a new version under the same name keeps the others. Its text is saved in the group's memory at deals/{deal_id}/deck as Markdown, and that address goes in deck_address.
+  - An item that came to the intake address gets its deal_id, owner and received_at before anything else, since the server asks for them at its next edit.
   - Times are in UTC.
 ---
 
@@ -195,6 +205,12 @@ How this group tracks the companies the fund looks at. Read it before you post o
 - Title: the company's name.
 - Data: `deal_id` (such as `acme-robotics-2026`, unique: the server refuses a second deal with the same one, and names the first), `owner` (who leads it), `received_at`, `next_action` and `next_action_due` (times in UTC), `deck_address` (the deck's address in this group's memory), `source_reference` and `source_digest` (where it came from), and `rejection_reason` once it is rejected.
 - The deck's file goes on the deal's post with `docs.upload_link`, up to 50 MB, and `posts.get` lists it. Sending it again under the same name makes a new version and keeps the others, so the group keeps every deck it was sent, within its 5 GB: about 500 decks a year at a few megabytes each for two or three years. Its text goes at `bc://group/{group}/deals/<deal_id>/deck`, as Markdown, so search finds it.
+
+## Deals by email
+
+The board has an intake address, which the owner and admins see in `posts.channels`. Keep it inside the team: whoever has it can post here, up to 50 emails a day. Forward a deck to it, and the email becomes a `proposed` deal with the subject as its title, its text as its body, the first attachment as its file, and `from` and `source` set. Forwarding the same email again makes nothing new.
+
+An emailed deal has no `deal_id`, `owner` or `received_at` yet. Before anything else, set them, with an edit that gives all three: the server refuses any other edit of it until they are there. Save the deck's text at its address and set `deck_address` too.
 
 ## Stages
 
@@ -270,7 +286,7 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 
 - The group: people join only by invitation; the owner and admins invite; not listed.
 - Roles: only the owner and admins create and change channels, and a follower reads, posting only where a channel lets everyone post.
-- `deals`: a board; members post, and followers only read; any member edits a post; a post's status is one of `proposed`, `investment-committee`, `due-diligence`, `term-sheet`, `closing`, `invested`, `rejected`, and a new post gets `proposed`; a top-level post's type is one of `deal`, and its data holds only that type's fields; a post moves only as the rules below say, and a status no rule leaves is final.
+- `deals`: a board; members post, and followers only read; any member edits a post; a post's status is one of `proposed`, `investment-committee`, `due-diligence`, `term-sheet`, `closing`, `invested`, `rejected`, and a new post gets `proposed`; a top-level post's type is one of `deal`, and its data holds only that type's fields; a post moves only as the rules below say, and a status no rule leaves is final; each email to its intake address becomes one item, however often it arrives, and needs its required fields when it is next edited; only the owner and admins see the address.
 - `deals`, type `deal`, field `deal_id` (text, required, unique): The deal's ID, the company's name in lower case with hyphens and the year it arrived, such as acme-robotics-2026. The server refuses a second deal with the same one.
 - `deals`, type `deal`, field `owner` (person, required): The team member who leads the deal, by person ID or email address.
 - `deals`, type `deal`, field `received_at` (datetime, required): When the deal reached the fund, in UTC, such as 2026-10-29T09:30:00Z.
@@ -280,6 +296,8 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 - `deals`, type `deal`, field `source_reference` (text): Where the deal came from, such as the email's subject and date, or who introduced it.
 - `deals`, type `deal`, field `source_digest` (text): The SHA-256 of the deck file as it arrived, so a deck sent twice is recognized.
 - `deals`, type `deal`, field `rejection_reason` (text): Why the fund passed, in a sentence. Set when the deal moves to rejected.
+- `deals`, type `deal`, field `from` (text): The address of whoever sent the deal, when it arrived by email.
+- `deals`, type `deal`, field `source` (text): How it arrived, "email" when it came to the board's intake address.
 - `deals`: from `proposed` to `investment-committee`, by any member; it needs `next_action`, `next_action_due`.
 - `deals`: from `investment-committee` to `due-diligence`, by any member.
 - `deals`: from `due-diligence` to `term-sheet`, by any member.
@@ -298,4 +316,5 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 - To reopen a rejected deal, post it again with a new deal_id.
 - Before posting a deal, search the board for its company's name, so a company isn't posted twice under two IDs.
 - A deck's file goes on the deal's item, up to 50 MB, and a new version under the same name keeps the others. Its text is saved in the group's memory at deals/{deal_id}/deck as Markdown, and that address goes in deck_address.
+- An item that came to the intake address gets its deal_id, owner and received_at before anything else, since the server asks for them at its next edit.
 - Times are in UTC.

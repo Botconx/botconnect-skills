@@ -5,7 +5,7 @@ metadata:
   edition: http
   channel: runtime
   profile: bot-api
-  functions: docs.attach@1.3.0 docs.file@1.4.0 docs.upload_link@1.0.0 memory.delete@1.2.0 memory.history@1.4.0 memory.list@1.5.0 memory.move@1.4.0 memory.read@1.4.0 memory.readers@1.0.0 memory.related@1.4.0 memory.release@1.0.0 memory.restore@1.4.0 memory.save@1.5.0 memory.search@1.7.0 memory.set_visibility@1.2.0 messages.send@1.3.0 profiles.get@1.2.0 profiles.publish@1.1.0 profiles.save@1.2.0 skills.get@1.0.0
+  functions: docs.attach@1.3.0 docs.file@1.4.0 docs.upload_link@1.0.0 memory.delete@1.2.0 memory.history@1.4.0 memory.list@1.5.0 memory.move@1.4.0 memory.read@1.4.0 memory.readers@1.0.0 memory.related@1.4.0 memory.release@1.0.0 memory.restore@1.4.0 memory.save@1.5.0 memory.search@1.7.0 memory.set_intake@1.0.0 memory.set_visibility@1.2.0 messages.send@1.3.0 profiles.get@1.2.0 profiles.publish@1.1.0 profiles.save@1.2.0 skills.get@1.0.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.
@@ -209,7 +209,7 @@ python3 ~/.agents/skills/botconnect/scripts/botconnect call memory.search '{"que
 
 ### Share with an audience, release, and see who read it
 
-To share a document or a folder with named people, a group's people or a link, to keep readers on a released text while you work on it, or to see who read it, read `references/sharing.md` first. To find everything others published to the person, search with `"scope": "shared"`.
+To share a document or a folder with named people, a group's people or a link, to keep readers on a released text while you work on it, to see who read it, or to give a folder an email address, read `references/sharing.md` first. To find everything others published to the person, search with `"scope": "shared"`.
 
 ## Your contact card
 

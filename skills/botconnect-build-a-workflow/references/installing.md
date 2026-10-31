@@ -80,6 +80,18 @@ Send `transitions` too, for each channel whose rules say `enforced: true`, in th
 python3 ~/.agents/skills/botconnect/scripts/botconnect call posts.set_channel '{"group":"grp_5vh7n2c8r4kd6xpq","channel":"listings","transitions":[{"from":"open","to":"reserved","by":"everyone","records":"reserved_by","expires":{"after":"48h","to":"open"}},{"from":"reserved","to":"open","by":"field:reserved_by"},{"from":"reserved","to":"sold","by":"author"}]}'
 ```
 
+For a channel with `intake: true`, turn on its address, in a call of its own, and for each folder in `intake_folders`, turn on its save-to address, under the group's address. A refusal with `not_allowed` means this deployment receives no email: go on without it, and say so in step 11.
+
+```bash
+python3 ~/.agents/skills/botconnect/scripts/botconnect call posts.set_channel '{"group":"grp_5vh7n2c8r4kd6xpq","channel":"deals","intake":true}'
+```
+
+```bash
+python3 ~/.agents/skills/botconnect/scripts/botconnect call memory.set_intake '{"under":"bc://group/grp_5vh7n2c8r4kd6xpq/deals/inbox","enabled":true}'
+```
+
+Each answer gives the address. Tell the person in the chat, and never write it in the guide or the record, which every member reads: whoever has it can write to the board or the folder.
+
 Setting a channel that exists changes it rather than making another, so this step is safe to repeat. In an upgrade, a unique field can be refused with `conflict` when two existing posts share a value: show the person the two posts and let them change one. An existing post that doesn't fit stays listed, and must fit the next time it is edited.
 
 ## 7. Save the guide
@@ -122,6 +134,7 @@ Invite the people the person named, with their roles, as the skill's "Try it, th
 
 ## 11. Tell the person
 
+- **Each intake address,** and that the board or folder takes email from anyone who has it, so it stays with the people who run the workflow.
 - **The conventions in force:** the "Conventions" list of the Rules section. Their AIs keep them; the server doesn't check them yet.
 - **The schedules** in the manifest, each with its cadence and what it does. Set up the ones this host can run, such as a scheduled task, when the person agrees, and say which it can't. A schedule with `stream` can run on the event stream instead, on a host with a bot that keeps running under a consumer name: subscribe as its `subscribe` says, set reminders as its `remind` says, and read as "React instead of polling" in the skill says.
 - **The external tools,** with what you have and what is missing. BotConnect holds no credential for any of them.

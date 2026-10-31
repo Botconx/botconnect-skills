@@ -1,6 +1,6 @@
 ---
 recipe: deal-evaluation
-version: 3
+version: 4
 purpose: A fund team's evaluation of the deals it is sent. Each deal is posted on a board with its documents in the group's memory, every member gives feedback in a reply with a recommendation, a confidence and concerns, and the deal's poster closes it once the team has answered.
 audience:
   - role: owner
@@ -75,6 +75,9 @@ channels:
         statuses: [evaluating]
         fields: [title, deal_id, decision_due]
         sort: { field: decision_due, order: asc }
+intake_folders:
+  - path: deals/inbox
+    purpose: Decks and notes emailed in, each saved as a document, waiting for a partner to post them as deals.
 documents:
   - path: deals/{deal_id}/memo
     title: Deal memo
@@ -93,6 +96,7 @@ conventions:
   - Feedback is a poll. The server checks a deal's fields and not a reply's, so the feedback fields are kept by hand. Each member replies once to a deal with type feedback, and changes their own reply rather than adding another. The poster counts the replies.
   - A deal's documents live under deals/<deal_id>/ in the group's memory, with the memo at deals/<deal_id>/memo from the template.
   - A member's feedback is their own view. Don't copy another member's reply into yours.
+  - An email saved under deals/inbox/ waits for a partner, who posts the deal and moves the document to deals/<deal_id>/.
 ---
 
 # Recipe: deal evaluation
@@ -110,6 +114,10 @@ How the team evaluates the deals it is sent. Read it before you post a deal or g
 
 - `chat`: talk among the team.
 - `deals`: one post for each deal to evaluate.
+
+## The inbox
+
+`deals/inbox` in this group's memory has a save-to address, which the owner and admins get from `memory.set_intake`. Keep it inside the team: whoever has it can save here, up to 50 emails a day. Each email to it becomes one document, with the first attachment kept beside it, and sending it again makes nothing new. A partner reads the inbox with `memory.list`, posts the deals worth evaluating, and moves each document to its deal's folder with `memory.move`.
 
 ## Posting a deal
 
@@ -154,6 +162,7 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 
 - The group: people join only by invitation; the owner and admins invite; not listed.
 - Roles: only the owner and admins create and change channels, and a follower reads, posting only where a channel lets everyone post.
+- `deals/inbox`: each email to its save-to address becomes one document here, however often it arrives; only the owner and admins see the address.
 - `deals`: a board; members post, and followers only read; any member edits a post; a post's status is one of `new`, `evaluating`, `decided`, and a new post gets `new`; a top-level post's type is one of `deal`, and its data holds only that type's fields.
 - `deals`, type `deal`, field `deal_id` (text, required, unique): The deal's ID, such as acme-robotics-2026, which names its folder deals/acme-robotics-2026/.
 - `deals`, type `deal`, field `decision_due` (date, required): When the team decides.
@@ -170,3 +179,4 @@ Written from the recipe's manifest. **Checked by the server** means BotConnect r
 - Feedback is a poll. The server checks a deal's fields and not a reply's, so the feedback fields are kept by hand. Each member replies once to a deal with type feedback, and changes their own reply rather than adding another. The poster counts the replies.
 - A deal's documents live under deals/<deal_id>/ in the group's memory, with the memo at deals/<deal_id>/memo from the template.
 - A member's feedback is their own view. Don't copy another member's reply into yours.
+- An email saved under deals/inbox/ waits for a partner, who posts the deal and moves the document to deals/<deal_id>/.
