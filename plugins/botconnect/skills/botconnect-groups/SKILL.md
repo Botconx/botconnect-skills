@@ -1,11 +1,11 @@
 ---
 name: botconnect-groups
-description: Create and run BotConnect groups, the people with roles who share chat, feeds, boards and documents, and talk in the group's chat. Use it when the person wants to start a group, invite or remove people, answer a group invitation, change someone's role, see who is in a group, read a group's guide, find an open group to follow, catch up on what their groups said, search what a group said, or post to a group.
+description: Create and run BotConnect groups, the people with roles who share chat, feeds, boards and documents, and talk in the group's chat. Use it when the person wants to start a group, invite, remove or ban people, answer a group invitation, change someone's role, see who is in a group, read a group's guide, find an open group to follow, catch up on what their groups said, search what a group said, or post to a group.
 metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: groups.create@1.1.0 groups.find@2.1.0 groups.get@1.2.0 groups.invite@1.1.0 groups.join@1.1.0 groups.leave@1.0.0 groups.list@1.1.0 groups.update@1.1.0 memory.read@1.4.0 posts.create@1.5.0 posts.get@1.7.0 posts.list@1.4.0 posts.mark_read@1.0.2 posts.search@1.4.0 posts.unread@1.3.0
+  functions: groups.ban@1.0.0 groups.create@1.1.0 groups.find@2.1.0 groups.get@1.3.0 groups.invite@1.2.0 groups.join@1.2.0 groups.leave@1.0.0 groups.list@1.1.0 groups.unban@1.0.0 groups.update@1.1.0 memory.read@1.4.0 posts.create@1.5.0 posts.get@1.7.0 posts.list@1.4.0 posts.mark_read@1.0.2 posts.search@1.4.0 posts.unread@1.3.0
 ---
 
 # BotConnect groups
@@ -15,7 +15,7 @@ A BotConnect group is a set of people with roles. Each group has an ID such as `
 | Role | Can |
 |---|---|
 | `owner` | Everything, including passing ownership and deleting the group. Every group has exactly one |
-| `admin` | Change settings, invite, and remove members and followers |
+| `admin` | Change settings, invite, and remove or ban members and followers |
 | `member` | Read and post, and write the group's documents. Invite too when the group's `invite_policy` is `members` |
 | `follower` | Read, and post only where everyone may. Sees only the owner and admins |
 
@@ -184,7 +184,31 @@ Call `bc_run_write_function` with:
 
 Closing the group unlists it. Offer to list a group only when the person wants strangers to find it.
 
-## Roles, settings and removal
+## Removing and banning
+
+Removing someone takes them out of the group now, and they can follow an open group again. A ban also keeps them out, for someone who keeps coming back:
+
+Call `bc_run_delete_function` with:
+
+```json
+{"function":"groups.ban","input":{"group":"grp_8kq2m4x9c7tb3wzn","person":"sam@example.com"}}
+```
+
+- **`person` is an email address, or a person ID,** such as the `id` in a post's `author`, which reaches someone who already left. The answer is the same whether or not an address has a BotConnect account.
+- The owner bans anyone else, an admin bans members and followers, and nobody bans the owner.
+- `groups.join` refuses them with `not_allowed` and no reason, and members aren't told. A removal shows on the stream as any removal does, and the ban only to the owner and admins, who see the bans in `groups.get`.
+- What they posted stays, so delete what should go, with `posts.delete`. They still read the group's public channels, as any account can.
+- An invitation to a banned address is refused until you lift the ban:
+
+Call `bc_run_write_function` with:
+
+```json
+{"function":"groups.unban","input":{"group":"grp_8kq2m4x9c7tb3wzn","person":"sam@example.com"}}
+```
+
+Name them in `groups.unban` as `groups.get` shows the ban, by the address or the person ID it holds. Lifting a ban lets them join again and puts nobody back.
+
+## Roles and settings
 
 For anything else, such as making someone an admin, passing ownership, removing someone, withdrawing an invitation, renaming or archiving a group, search the groups functions, then describe the one you need before you run it:
 
@@ -194,7 +218,7 @@ Call `bc_find_functions` with:
 {"query":"change someone's role in a group","namespace":"groups"}
 ```
 
-- **Removing a person and deleting a group are deletions.** Run them only when the person asked for that change, and confirm first when they didn't name exactly who or what goes.
+- **Removing a person, banning them and deleting a group are deletions.** Run them only when the person asked for that change, and confirm first when they didn't name exactly who or what goes.
 - The owner can't leave. To hand a group over, the owner makes an admin or a member the owner, and becomes an admin.
 - To stop a group without losing its history, archive it instead of deleting it. An archived group is read-only until its owner restores it.
 
@@ -216,6 +240,7 @@ Posts and their search snippets, a group's name and purpose (in `groups.find` to
 | Groups per person | 200 |
 | Invitations | 50 a day, or 25 for a new account, and 20 addresses a call |
 | People in a group | 500 owners, admins and members, and 10,000 followers |
+| Bans | 10,000 in a group |
 | Posts | 500 a day, or 250 for a new account. 32 KB a body |
 | Channels | 20 in a group, `chat` included |
 

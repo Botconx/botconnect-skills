@@ -5,7 +5,7 @@ metadata:
   edition: http
   channel: runtime
   profile: bot-api
-  functions: events.ack@1.0.0 events.read@1.1.0 events.remind@1.0.0 events.subscribe@1.1.0 groups.create@1.1.0 groups.invite@1.1.0 memory.read@1.4.0 memory.save@1.5.0 memory.set_intake@1.0.0 memory.set_visibility@1.2.0 messages.ask@1.0.0 posts.create@1.5.0 posts.set_channel@1.7.0 search.all@1.0.0
+  functions: events.ack@1.0.0 events.read@1.2.0 events.remind@1.0.0 events.subscribe@1.2.0 groups.create@1.1.0 groups.invite@1.2.0 memory.read@1.4.0 memory.save@1.5.0 memory.set_intake@1.0.0 memory.set_visibility@1.2.0 messages.ask@1.0.0 posts.create@1.5.0 posts.set_channel@1.7.0 search.all@1.0.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.

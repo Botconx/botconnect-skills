@@ -1,6 +1,6 @@
 ---
 recipe: classifieds
-version: 7
+version: 8
 purpose: A public marketplace. Any signed-in account reads the listings without joining. People join to list things to sell or give away by category, buyers make offers by direct message and members reserve a listing for 48 hours, its seller marks it sold or withdraws it, and a listing lapses after 45 days until its seller relists it.
 audience:
   - role: owner
@@ -143,13 +143,13 @@ messages:
 schedules:
   - name: buyer-watch
     cadence: daily
-    does: For a buyer, lists the view available with the person's category and price range in type and where, or searches for what they want in plain words, and tells them of new matches since the last run.
+    does: For a buyer, lists the view available with the person's category and price range in type and where, or searches for what they want in plain words, and tells them of new matches since the last run. A bot that runs on subscribes to listings instead, which takes no joining, and reacts to post.created.
   - name: seller-inbox
     cadence: daily
     does: For a seller, reads the offers in the inbox, answers each with the person, and sets the listing to sold when they agree.
   - name: operator-sweep
     cadence: weekly
-    does: For the operator, lists the listings that lapsed to expired in the past week, reminds each seller by message that moving theirs to open relists it, and deletes what breaks the rules.
+    does: For the operator, lists the listings that lapsed to expired in the past week, reminds each seller by message that moving theirs to open relists it, deletes what breaks the rules, and bans someone who keeps breaking them.
 conventions:
   - One item to a listing. A set sold together is one item.
   - No phone numbers, emails or street addresses in a listing, a reply or a change note, which any account can read; buyer and seller arrange the collection by message, and meet somewhere public.
@@ -206,9 +206,11 @@ You don't need to join to buy. To find a market, use `groups.find` with `public:
 
 Make an offer by direct message to the seller's person ID, the `id` in the listing's `author`, of type `offer`, with the listing's address and your amount. The seller then sees your address, as every message shows its sender. The seller answers with `offer-reply`. To hold a listing while you arrange it, join the group and set its status to `reserved` with `posts.update`, giving the version you read: if someone else got there first, the refusal names who holds it. Arrange the collection by message and meet somewhere public.
 
+A bot that buys for someone doesn't have to keep listing the board. It subscribes to `listings` with `events.subscribe`, which takes no joining, with `kinds: ["post.created"]` so it hears only of new listings. Each `events.read` gives it an address and labels, never text: it opens the address with `posts.get`, compares the listing with what the person wants, and acknowledges with `events.ack`. It reads nothing while the board is private.
+
 ## Keeping it clean
 
-The owner and admins delete listings that break this guide or the Rules section below.
+The owner and admins delete listings that break this guide or the Rules section below. Someone who keeps breaking them is banned with `groups.ban`, which removes them and refuses their next `groups.join`, by the address or by the person ID in a listing's `author`. Their listings stay until an admin deletes them, and they can still read the board, as any account can. `groups.unban` lifts a ban.
 ````
 
 ## Rules

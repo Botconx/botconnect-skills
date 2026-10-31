@@ -13,3 +13,4 @@ Call `bc_run_write_function` with:
 - Posting still needs joining. A reader sees each author's person ID and never their address, so a buyer writes to a seller with messages.send and that ID.
 - **What someone writes in an item is public and theirs to keep private.** The server hides addresses in `author`, marks and data values. It can't hide one written in a sentence, so tell the person before they post.
 - To find markets, use groups.find with `public: true`.
+- A bot that runs on follows a public board without joining: it subscribes with events.subscribe, and reads each new item as an address and labels. Its reads go empty the moment the board goes private.
