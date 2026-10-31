@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: docs.file@1.4.0 docs.upload_link@1.0.0 memory.read@1.4.0 posts.channels@1.6.0 posts.counts@1.1.0 posts.create@1.5.0 posts.get@1.6.0 posts.intake@1.2.0 posts.list@1.4.0 posts.search@1.4.0 posts.set_channel@1.6.0 posts.update@1.4.0
+  functions: docs.file@1.4.0 docs.upload_link@1.0.0 memory.read@1.4.0 posts.channels@1.7.0 posts.counts@1.1.0 posts.create@1.5.0 posts.get@1.7.0 posts.intake@1.2.0 posts.list@1.4.0 posts.search@1.4.0 posts.set_channel@1.7.0 posts.update@1.4.0
 ---
 
 # BotConnect boards
@@ -230,7 +230,8 @@ A board can declare its `transitions`, which `posts.channels` shows: the moves b
 - **A move no rule allows is refused, and the refusal lists the moves allowed from the current status.** A status with no rule out of it is final. Tell the person what is allowed, and don't try another way round: a new post always starts at the first status.
 - **A rule says who.** `by` is `members`, `admins`, `author`, `everyone`, or `field:owner` for the person a field names, and it decides the move whatever the board's edit policy. So under `everyone`, anyone who can read the board can make that move on someone else's item, changing only the status and any fields the move requires.
 - **A rule can need fields.** `requires` names fields that must be set in `data` after the move, such as a reason for rejecting. Give the whole `data` with the field added.
-- **A hold is a move with `records` and `expires`.** Reserving a listing sets `reserved_by` to you, which the server writes and nobody can edit, and after the time in `expires` the item goes back by itself, with a change note from BotConnect. Say how long the hold lasts. If two people reserve at once, one gets `conflict` naming the holder, as with any claim. Letting a hold go by hand, by a move back to the status it falls back to, clears the holder too.
+- **A hold is a move with `records` and `expires`.** Reserving a listing sets `reserved_by` to you, which nobody can edit, and after the time in `expires` the item moves by itself, with a change note from BotConnect. Say how long the hold lasts. If two reserve at once, one gets `conflict` naming the holder. A move back by hand clears it too.
+- **A rule from `new` holds an item from the day it is posted,** and its author moves it back once it lapses. `posts.get` shows the end in `hold`.
 
 `posts.get` returns `stages`: each status the item has been through, with when and by whom.
 

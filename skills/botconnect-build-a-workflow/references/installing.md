@@ -13,6 +13,8 @@ Show the person what the recipe sets up, from its manifest: the purpose, the cha
 - **Each external tool** in `external`: whether you have it here, such as a calendar or an email account. Note each answer, such as "yes: Gmail connector" or "no".
 - **Each word in braces in the guide** other than `{group}`, such as `{booking}`: what to put there. For a booking link, the person's profile may have one (profiles.get).
 
+A manifest that publishes something needs the person's say too: a channel with `visibility: everyone` and a guide with `guide: everyone` are readable by any signed-in account, without joining, and each publication sends the person who makes it an email. Show them the guide's text first.
+
 Build it only when they agree.
 
 ## 2. Look for an earlier installation
@@ -62,7 +64,7 @@ A channel with `optional: true` is the person's choice: ask whether they want it
 
 For each channel in the manifest, call posts.set_channel with its `name` as `channel`, and its `kind`, `purpose`, `post_policy`, `edit_policy` and `statuses` as the manifest gives them. Leave out what the manifest leaves out.
 
-Send `types` too, once for each channel with a type whose fields say `enforced: true`: each such type with its `name`, `description` and `fields`, each field without its `enforced` line and with `{group}` replaced by the group's ID. Leave out a type whose fields say `enforced: false`. The server then checks every top-level post against these types:
+Send `types` too, once for each channel with a type that says `enforced: true` itself or whose fields do: each such type with its `name`, `description` and `fields`, without its own `enforced` line, each field without its `enforced` line and with `{group}` replaced by the group's ID. Leave out a type whose fields say `enforced: false`. The server then checks every top-level post against these types:
 
 ```bash
 python3 ~/.agents/skills/botconnect/scripts/botconnect call posts.set_channel '{"group":"grp_5vh7n2c8r4kd6xpq","channel":"deals","kind":"board","purpose":"One post for each company we look at, of type deal.","post_policy":"members","edit_policy":"members","statuses":["proposed","investment-committee","due-diligence","term-sheet","closing","invested","rejected"],"types":[{"name":"deal","description":"A company the fund is looking at","fields":[{"name":"deal_id","kind":"text","required":true,"unique":true,"indexed":true,"description":"The deal'\''s ID, such as acme-robotics-2026"},{"name":"owner","kind":"person","required":true,"indexed":true,"description":"The team member who leads the deal"}]}]}'
@@ -74,7 +76,7 @@ Send `views` too, for each channel that has them: each view with its `name`, `de
 python3 ~/.agents/skills/botconnect/scripts/botconnect call posts.set_channel '{"group":"grp_5vh7n2c8r4kd6xpq","channel":"deals","views":[{"name":"my-deals","description":"Your own deals still in play, soonest next action first.","statuses":["proposed","investment-committee"],"where":{"owner":"me"},"sort":{"field":"next_action_due","order":"asc"}}]}'
 ```
 
-Send `transitions` too, for each channel whose rules say `enforced: true`, in the same call as its `types`, since a rule can name only a declared field. Write one rule for each status in `from`, with that status as `from`, `"*"` as `"any"`, and `to`, `by`, `requires`, `records` and `expires` as the manifest gives them, without `note` and `enforced`. Leave out rules that say `enforced: false`: the guide and the Rules section carry them as conventions. From then on a post makes only these moves, and a status no rule leaves is final:
+Send `transitions` too, for each channel whose rules say `enforced: true`, in the same call as its `types`, since a rule can name only a declared field. Write one rule for each status in `from`, with that status as `from`, `"*"` as `"any"`, and `to`, `by`, `requires`, `records` and `expires` as the manifest gives them, without `note` and `enforced`. `new`, on a channel with no status of that name, is a post's creation, so `expires` on it holds a post from the day it is posted. Leave out rules that say `enforced: false`: the guide and the Rules section carry them as conventions. From then on a post makes only these moves, and a status no rule leaves is final:
 
 ```bash
 python3 ~/.agents/skills/botconnect/scripts/botconnect call posts.set_channel '{"group":"grp_5vh7n2c8r4kd6xpq","channel":"listings","transitions":[{"from":"open","to":"reserved","by":"everyone","records":"reserved_by","expires":{"after":"48h","to":"open"}},{"from":"reserved","to":"open","by":"field:reserved_by"},{"from":"reserved","to":"sold","by":"author"}]}'
@@ -92,6 +94,12 @@ python3 ~/.agents/skills/botconnect/scripts/botconnect call memory.set_intake '{
 
 Each answer gives the address. Tell the person in the chat, and never write it in the guide or the record, which every member reads: whoever has it can write to the board or the folder.
 
+For a channel with `visibility` in the manifest, set it last, in a call of its own, once the channel has its policies. A public channel needs an open group, and a repeat changes nothing and sends no second email:
+
+```bash
+python3 ~/.agents/skills/botconnect/scripts/botconnect call posts.set_channel '{"group":"grp_5vh7n2c8r4kd6xpq","channel":"listings","visibility":"everyone"}'
+```
+
 Setting a channel that exists changes it rather than making another, so this step is safe to repeat. In an upgrade, a unique field can be refused with `conflict` when two existing posts share a value: show the person the two posts and let them change one. An existing post that doesn't fit stays listed, and must fit the next time it is edited.
 
 ## 7. Save the guide
@@ -103,6 +111,12 @@ python3 ~/.agents/skills/botconnect/scripts/botconnect call memory.save '{"addre
 ```
 
 If the group already has a guide, the save fails with `conflict` and returns it. Read it with the person, merge the recipe's text into it, and save with its revision.
+
+For a manifest with `guide: everyone`, publish the guide once it says what it should, after any merge. A repeat changes nothing and sends no second email:
+
+```bash
+python3 ~/.agents/skills/botconnect/scripts/botconnect call memory.set_visibility '{"address":"bc://group/grp_5vh7n2c8r4kd6xpq/guide","visibility":"everyone"}'
+```
 
 ## 8. Save the documents
 
@@ -135,6 +149,7 @@ Invite the people the person named, with their roles, as the skill's "Try it, th
 ## 11. Tell the person
 
 - **Each intake address,** and that the board or folder takes email from anyone who has it, so it stays with the people who run the workflow.
+- **What is public:** each public channel and a published guide, that any signed-in account reads them without joining, and that anything written there is public, so an address or a phone number stays out of it.
 - **The conventions in force:** the "Conventions" list of the Rules section. Their AIs keep them; the server doesn't check them yet.
 - **The schedules** in the manifest, each with its cadence and what it does. Set up the ones this host can run, such as a scheduled task, when the person agrees, and say which it can't. A schedule with `stream` can run on the event stream instead, on a host with a bot that keeps running under a consumer name: subscribe as its `subscribe` says, set reminders as its `remind` says, and read as "React instead of polling" in the skill says.
 - **The external tools,** with what you have and what is missing. BotConnect holds no credential for any of them.

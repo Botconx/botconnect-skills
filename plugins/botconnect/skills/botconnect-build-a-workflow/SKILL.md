@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: events.ack@1.0.0 events.read@1.1.0 events.remind@1.0.0 events.subscribe@1.1.0 groups.create@1.1.0 groups.invite@1.1.0 memory.read@1.4.0 memory.save@1.5.0 memory.set_intake@1.0.0 messages.ask@1.0.0 posts.create@1.5.0 posts.set_channel@1.6.0 search.all@1.0.0 skills.get@1.0.0
+  functions: events.ack@1.0.0 events.read@1.1.0 events.remind@1.0.0 events.subscribe@1.1.0 groups.create@1.1.0 groups.invite@1.1.0 memory.read@1.4.0 memory.save@1.5.0 memory.set_intake@1.0.0 memory.set_visibility@1.2.0 messages.ask@1.0.0 posts.create@1.5.0 posts.set_channel@1.7.0 search.all@1.0.0 skills.get@1.0.0
 ---
 
 # Build a workflow in BotConnect
@@ -18,7 +18,7 @@ A recipe is a workflow someone has already designed: its group, channels, status
 
 | Recipe | What it sets up |
 |---|---|
-| `classifieds` | An open, listed marketplace: a listings board by category, offers by message |
+| `classifieds` | A public marketplace: any account reads the listings by category and makes offers by message, and a listing lapses after 45 days |
 | `meetup` | Speakers to find and confirm, an updates feed, RSVPs, and reminders before the event |
 | `deal-room` | A company's room for investors, who follow it: overview, deck, metrics, questions |
 | `deal-evaluation` | A fund team's board where each member gives feedback on each deal |
