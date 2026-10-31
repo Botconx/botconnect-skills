@@ -111,7 +111,7 @@ python3 ~/.agents/skills/botconnect/scripts/botconnect call posts.intake '{"grou
 
 ### An email address for a board
 
-The owner and admins can give a board an address, and each email to it becomes an item, in the name of the person who turned it on, with the board's first type, the subject as its title, its text as its body and the first attachment as its file. The same email arriving twice, even forwarded twice, makes one item.
+The owner and admins can give a board an address, and each email to it becomes an item, in the name of the person who turned it on, with the board's first type, the subject as its title, its text as its body and the first attachment as its file. The same email arriving twice, even forwarded twice, makes one item, and so does any email with a file the board already took in this way.
 
 ```bash
 python3 ~/.agents/skills/botconnect/scripts/botconnect call posts.set_channel '{"group":"grp_8kq2m4x9c7tb3wzn","channel":"deals","intake":true}'
