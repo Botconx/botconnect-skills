@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: groups.find@2.0.0 groups.get@1.2.0 groups.join@1.1.0 groups.leave@1.0.0 groups.update@1.1.0 posts.create@1.4.0 posts.list@1.3.0 posts.set_channel@1.5.0 posts.unread@1.2.0
+  functions: groups.find@2.1.0 groups.get@1.2.0 groups.join@1.1.0 groups.leave@1.0.0 groups.update@1.1.0 posts.create@1.5.0 posts.list@1.4.0 posts.set_channel@1.6.0 posts.unread@1.3.0
 ---
 
 # BotConnect feeds
@@ -46,7 +46,7 @@ Call `bc_run_write_function` with:
 {"function":"posts.create","input":{"group":"grp_8kq2m4x9c7tb3wzn","channel":"news","body":"## Version 2\n\nDark mode, and faster search."}}
 ```
 
-- **Post only what the person asked you to publish,** and show them the text first unless they gave you the exact words. Every follower reads it, with the person's name and email address, and followers are strangers.
+- **Post only what the person asked you to publish,** and show them the text first unless they gave you the exact words. Every follower reads it, with the person's name and person ID, and followers are strangers. They see the email address of the owner and admins, who are the ones posting.
 - One post reaches every follower, however many there are.
 - People follow by the group's ID, which the person can share where their audience will find it. To let people search for the feed too, list the group: `bc_run_write_function` with `{"function":"groups.update","input":{"group":"grp_8kq2m4x9c7tb3wzn","listed":true}}` Only an open group can be listed, and closing it unlists it. List it only when the person wants strangers to find it.
 - To take questions or requests from followers, add a channel where everyone may post, such as a board: `bc_find_functions` with `{"query":"create a channel in a group","namespace":"posts"}`
@@ -60,6 +60,19 @@ Call `bc_run_read_function` with:
 ```
 
 To remove a follower, search the groups functions for removing someone. Removal is a deletion, so run it only when the person asked.
+
+## A public feed
+
+An admin of an open group can publish the feed, so any signed-in account reads it without following:
+
+Call `bc_run_write_function` with:
+
+```json
+{"function":"posts.set_channel","input":{"group":"grp_8kq2m4x9c7tb3wzn","channel":"news","visibility":"everyone"}}
+```
+
+- Publish only when the person asked. A reader may be anyone with an account, and finds posts with posts.search and `scope: "everyone"`. The person gets an email, and `visibility: "group"` takes it back at once.
+- Readers who haven't joined see each author's person ID, and never an address the server holds. They reach an author with messages.send and that ID. What someone writes in a post is theirs to keep private.
 
 ## Follow a feed
 
@@ -81,7 +94,7 @@ Call `bc_run_read_function` with:
 {"function":"groups.get","input":{"group":"grp_8kq2m4x9c7tb3wzn"}}
 ```
 
-Tell the person what it says it is. **Follow only when the person says so:** following shows their name and email address to the group's owner and admins, and to everyone who reads a post they write there.
+Tell the person what it says it is. **Follow only when the person says so:** following shows their name and email address to the group's owner and admins. Other followers see only their name and person ID on a post they write there.
 
 Call `bc_run_write_function` with:
 

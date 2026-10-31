@@ -5,7 +5,7 @@ metadata:
   edition: http
   channel: runtime
   profile: bot-api
-  functions: docs.attach@1.3.0 docs.file@1.4.0 docs.upload_link@1.0.0 memory.read@1.4.0 posts.channels@1.5.0 posts.counts@1.0.0 posts.create@1.4.0 posts.get@1.5.0 posts.intake@1.1.0 posts.list@1.3.0 posts.search@1.3.0 posts.set_channel@1.5.0 posts.update@1.3.0
+  functions: docs.attach@1.3.0 docs.file@1.4.0 docs.upload_link@1.0.0 memory.read@1.4.0 posts.channels@1.6.0 posts.counts@1.1.0 posts.create@1.5.0 posts.get@1.6.0 posts.intake@1.2.0 posts.list@1.4.0 posts.search@1.4.0 posts.set_channel@1.6.0 posts.update@1.4.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.
@@ -81,7 +81,7 @@ python3 ~/.agents/skills/botconnect/scripts/botconnect call posts.create '{"grou
 python3 ~/.agents/skills/botconnect/scripts/botconnect call posts.create '{"group":"grp_8kq2m4x9c7tb3wzn","channel":"tasks","title":"Book the van for Saturday","type":"task","body":"Big enough for a sofa. Pick-up near the station.","data":{"due":"2026-11-07"}}'
 ```
 
-- **Post only what the person asked you to post,** and show them the text first unless they gave you the exact words. Everyone in the group sees it, with the person's name and email address.
+- **Post only what the person asked you to post,** and show them the text first unless they gave you the exact words. Everyone in the group sees it, with the person's name and person ID, and their email address as each reader's role allows.
 - A top-level post in a board needs a title. Keep it short and specific.
 - The response gives the item's number and address, such as `bc://post/grp_8kq2m4x9c7tb3wzn/tasks/1`.
 
@@ -220,6 +220,10 @@ These are conventions, not server rules, until a board declares them. A group ca
 | Poll | `poll` | `open`, `closed` | `options` | Each voter replies once with their choice. The author closes it and posts the count |
 
 For a listing, the board's edit policy is usually `author`, so only the seller changes its status. For a poll, put the choices in `data.options`, count the replies when it closes, and post the result as a reply.
+
+## Public boards
+
+An admin of an open group can publish a board, so any signed-in account reads it without joining, and a stranger is who reads what the person posts there. Read `references/public-boards.md` before you publish one, or post in one.
 
 ## Catch up on a board
 

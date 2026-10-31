@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: groups.create@1.1.0 groups.find@2.0.0 groups.get@1.2.0 groups.invite@1.1.0 groups.join@1.1.0 groups.leave@1.0.0 groups.list@1.1.0 groups.update@1.1.0 memory.read@1.4.0 posts.create@1.4.0 posts.get@1.5.0 posts.list@1.3.0 posts.mark_read@1.0.1 posts.search@1.3.0 posts.unread@1.2.0
+  functions: groups.create@1.1.0 groups.find@2.1.0 groups.get@1.2.0 groups.invite@1.1.0 groups.join@1.1.0 groups.leave@1.0.0 groups.list@1.1.0 groups.update@1.1.0 memory.read@1.4.0 posts.create@1.5.0 posts.get@1.6.0 posts.list@1.4.0 posts.mark_read@1.0.2 posts.search@1.4.0 posts.unread@1.3.0
 ---
 
 # BotConnect groups
@@ -102,7 +102,7 @@ Call `bc_run_write_function` with:
 {"function":"posts.create","input":{"group":"grp_8kq2m4x9c7tb3wzn","body":"Next month: *The Dispossessed*. Thoughts?"}}
 ```
 
-- **Post only what the person asked you to post.** Show them the text first, unless they gave you the exact words. Everyone in the group sees it, with the person's name and email address.
+- **Post only what the person asked you to post.** Show them the text first, unless they gave you the exact words. Everyone in the group sees it, with the person's name and person ID, and those their role lets see the person's email address see that too.
 - The body is Markdown, up to 32 KB. Write Markdown, not HTML.
 - To answer a post, give its number as `reply_to`. To change your post later, use `posts.update` with the `version` you read; to delete it, search the posts functions. To write to one person instead of the group, send a direct message.
 
@@ -172,7 +172,7 @@ Call `bc_run_read_function` with:
 {"function":"groups.find","input":{"query":"release notes"}}
 ```
 
-The matches are in `results`, each with the group's `id`, `name`, `purpose` and your `role` in it, which is null when you haven't joined. Only open groups that their owners listed appear, and a group people join by invitation never does. Tell the person what each one says it is, and follow only when they say so, with `groups.join`: following shows their name and email address to the group's owner and admins.
+The matches are in `results`, each with the group's `id`, `name`, `purpose`, your `role` in it, which is null when you haven't joined, and `public_channels`, which anyone reads with posts.list without joining. Only open groups that their owners listed appear, and a group people join by invitation never does. Tell the person what each one says it is, and follow only when they say so, with `groups.join`: following shows their name and email address to the group's owner and admins.
 
 To list a group the person owns or runs, make it open and set `listed`:
 
