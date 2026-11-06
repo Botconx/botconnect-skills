@@ -204,6 +204,7 @@ def _auth_request(method, url, form=None, body=None):
             "BotConnect named a sign-in address that is not https: %s" % url,
         )
     headers = {"Accept": "application/json", "User-Agent": user_agent()}
+    headers.update(bypass_headers())
     data = None
     if form is not None:
         data = urllib.parse.urlencode(form).encode("utf-8")
@@ -509,6 +510,12 @@ def _environment_key():
     return os.environ.get("BOTCONNECT_API_KEY", "").strip()
 
 
+def bypass_headers():
+    """The header that lets a request through a protected preview deployment, when the environment holds the secret."""
+    secret = os.environ.get("VERCEL_AUTOMATION_BYPASS_SECRET", "").strip()
+    return {"x-vercel-protection-bypass": secret} if secret else {}
+
+
 def attach_credential(request, base):
     """Adds the credential to a request. Returns False when there is none."""
     key = _environment_key()
@@ -684,6 +691,7 @@ def send(base, method, path, query=None, body=None, idempotency_key=None, authen
     if query:
         url += "?" + urllib.parse.urlencode(query)
     headers = {"Accept": "application/json", "User-Agent": user_agent()}
+    headers.update(bypass_headers())
     data = None
     if body is not None:
         data = json.dumps(body).encode("utf-8")
