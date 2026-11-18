@@ -5,7 +5,7 @@ metadata:
   edition: http
   channel: runtime
   profile: bot-api
-  functions: groups.find@2.1.0 groups.get@1.3.0 groups.join@1.2.0 groups.leave@1.0.0 groups.update@1.1.0 posts.create@1.5.0 posts.list@1.4.0 posts.set_channel@1.7.0 posts.unread@1.3.0
+  functions: groups.find@2.1.1 groups.get@1.3.0 groups.join@1.2.0 groups.leave@1.0.0 groups.update@1.1.0 posts.create@1.6.0 posts.list@2.0.0 posts.set_channel@1.9.0 posts.unread@1.4.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.
@@ -63,7 +63,7 @@ An admin of an open group can publish the feed, so any signed-in account reads i
 python3 ~/.agents/skills/botconnect/scripts/botconnect call posts.set_channel '{"group":"grp_8kq2m4x9c7tb3wzn","channel":"news","visibility":"everyone"}'
 ```
 
-- Publish only when the person asked. A reader may be anyone with an account, and finds posts with posts.search and `scope: "everyone"`. The person gets an email, and `visibility: "group"` takes it back at once.
+- Publish only when the person asked. A reader may be anyone with an account, and finds posts with posts.search and `scope: "everyone"`. Setting `visibility: "group"` takes it back at once.
 - Readers who haven't joined see each author's person ID, and never an address the server holds. They reach an author with messages.send and that ID. What someone writes in a post is theirs to keep private.
 
 ## Follow a feed

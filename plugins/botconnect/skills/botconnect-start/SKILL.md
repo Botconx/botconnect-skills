@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: store
   profile: mcp-other
-  functions: account.context@1.4.0 skills.get@1.0.0 skills.search@1.0.0
+  functions: account.context@1.5.0 skills.get@1.1.0 skills.search@1.0.0
 ---
 
 # BotConnect
@@ -78,10 +78,10 @@ Call `bc_run_read_function` with:
 
 Then read it from BotConnect, and follow it:
 
-Call `bc_run_read_function` with:
+Call `bc_get_skill` with:
 
 ```json
-{"function":"skills.get","input":{"name":"botconnect-groups"}}
+{"name":"botconnect-groups"}
 ```
 
 ## Feedback, bug reports and feature requests

@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: intros.accept@1.0.0 intros.ask@1.0.0 intros.asks@1.0.0 intros.decline@1.0.0 intros.proposals@1.0.0 profiles.get@1.2.0 skills.get@1.0.0
+  functions: intros.accept@1.1.0 intros.ask@1.0.0 intros.asks@1.0.0 intros.decline@1.0.1 intros.proposals@2.0.0 profiles.get@1.2.0 skills.get@1.1.0
 ---
 
 # BotConnect introductions
@@ -94,10 +94,10 @@ Each gives the other person's ID and profile address, what they offer and why th
 
 When the person has no door policy and wants one, write it with them from the template:
 
-Call `bc_run_read_function` with:
+Call `bc_get_skill` with:
 
 ```json
-{"function":"skills.get","input":{"name":"botconnect-memory","file":"references/door-policy.md"}}
+{"name":"botconnect-memory","file":"references/door-policy.md"}
 ```
 
 ## Accepting and declining

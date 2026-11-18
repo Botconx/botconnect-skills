@@ -5,7 +5,7 @@ metadata:
   edition: http
   channel: store
   profile: bot-api
-  functions: account.context@1.4.0 skills.get@1.0.0 skills.search@1.0.0
+  functions: account.context@1.5.0 skills.get@1.1.0 skills.search@1.0.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.
@@ -55,7 +55,7 @@ A problem has a `code`:
 
 | Code | What to do |
 |---|---|
-| `invalid_input` | The input is wrong, and `errors` says where. Fix it and call again |
+| `invalid_input` | The input is wrong, and `issues` says where. Fix it and call again |
 | `not_found` | There is no such function or record, or this connection can't see it |
 | `not_allowed` | This connection has no permission for that data. Tell the person |
 | `conflict` | The record changed. `current` holds the new version |

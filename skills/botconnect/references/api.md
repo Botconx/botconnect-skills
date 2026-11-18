@@ -92,7 +92,7 @@ Search and describe return plain JSON. A function returns this envelope:
 ```json
 {
   "status": "complete",
-  "function": "account.context@1.4.0",
+  "function": "account.context@1.5.0",
   "data": {},
   "next_cursor": null,
   "text": "Signed in to BotConnect as you@example.com. Your person ID, which your document addresses use, is per_1w3k9m2x5c7tb8zn4q6r0v2y3a.",
@@ -118,7 +118,7 @@ An error is a problem details document (RFC 9457), with the content type `applic
 
 | Status | Code | Meaning |
 |---|---|---|
-| 400 | `invalid_input` | The input or a header is wrong. `errors` lists each `path` and `message` |
+| 400 | `invalid_input` | The input or a header is wrong. `issues` lists each `path` and `message` |
 | 401 | `unauthenticated` | There is no credential, or it is wrong or was disconnected |
 | 403 | `not_allowed` | This connection has no permission for that data |
 | 404 | `not_found` | There is no such function or record, or this connection can't see it |

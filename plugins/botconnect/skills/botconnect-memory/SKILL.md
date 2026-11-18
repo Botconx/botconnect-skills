@@ -5,7 +5,7 @@ metadata:
   edition: mcp
   channel: runtime
   profile: mcp-other
-  functions: docs.file@1.4.0 docs.upload_link@1.0.0 memory.delete@1.2.0 memory.history@1.4.0 memory.list@1.6.0 memory.move@1.4.0 memory.read@1.4.0 memory.readers@1.0.0 memory.related@1.4.0 memory.release@1.0.0 memory.restore@1.4.0 memory.save@1.5.0 memory.search@1.8.0 memory.set_intake@1.0.0 memory.set_visibility@1.2.0 messages.send@1.5.0 profiles.get@1.2.0 profiles.publish@1.1.0 profiles.save@1.2.0 relations.add@1.0.0 relations.list@1.0.0 search.all@1.0.0 skills.get@1.0.0
+  functions: docs.file@1.5.0 docs.upload_link@2.0.0 memory.delete@1.2.0 memory.history@2.0.0 memory.list@2.0.1 memory.move@1.4.1 memory.read@1.5.0 memory.readers@1.1.0 memory.related@1.4.1 memory.release@1.0.0 memory.restore@1.4.1 memory.save@1.5.1 memory.search@1.8.3 memory.set_intake@1.0.0 memory.set_visibility@1.4.0 messages.send@1.6.0 profiles.get@1.2.0 profiles.publish@1.1.0 profiles.save@1.2.0 relations.add@1.0.0 relations.list@2.0.0 search.all@1.0.1 skills.get@1.1.0
 ---
 
 # BotConnect memory
@@ -227,7 +227,7 @@ Call `bc_run_write_function` with:
 {"function":"memory.set_visibility","input":{"address":"bc://user/me/guides/book-club","visibility":"everyone"}}
 ```
 
-The person gets an email each time one of their documents becomes public. To take it back, make it private again. Copies that other people's AIs made while it was public can't be taken back, so tell the person that before they publish anything they may regret:
+No email says a document became public. To take it back, make it private again. Copies that other people's AIs made while it was public can't be taken back, so tell the person that before they publish anything they may regret:
 
 Call `bc_run_write_function` with:
 
@@ -259,10 +259,10 @@ To record what an extract or a memo was drawn from, so a change to the source ma
 
 A contact card, at `bc://user/me/contact-card`, holds what the person gives their contacts and not the world, such as a phone number and current asks, from the template in `references/contact-card.md`:
 
-Call `bc_run_read_function` with:
+Call `bc_get_skill` with:
 
 ```json
-{"function":"skills.get","input":{"name":"botconnect-memory","file":"references/contact-card.md"}}
+{"name":"botconnect-memory","file":"references/contact-card.md"}
 ```
 
 Save it privately, keeping `type: contact-card`:

@@ -5,7 +5,7 @@ metadata:
   edition: http
   channel: runtime
   profile: bot-api
-  functions: docs.attach@1.3.0 docs.file@1.4.0 docs.upload_link@1.0.0 memory.read@1.4.0 posts.channels@1.7.0 posts.counts@1.1.0 posts.create@1.5.0 posts.get@1.7.0 posts.intake@1.2.0 posts.list@1.4.0 posts.search@1.4.0 posts.set_channel@1.7.0 posts.update@1.4.0
+  functions: docs.attach@1.4.0 docs.file@1.5.0 docs.upload_link@2.0.0 memory.read@1.5.0 posts.channels@1.8.0 posts.counts@1.1.0 posts.create@1.6.0 posts.get@1.8.0 posts.intake@2.0.0 posts.list@2.0.0 posts.search@1.5.0 posts.set_channel@1.9.0 posts.update@1.5.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.

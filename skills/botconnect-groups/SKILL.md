@@ -5,7 +5,7 @@ metadata:
   edition: http
   channel: runtime
   profile: bot-api
-  functions: groups.ban@1.0.0 groups.create@1.1.0 groups.find@2.1.0 groups.get@1.3.0 groups.invite@1.2.0 groups.join@1.2.0 groups.leave@1.0.0 groups.list@1.1.0 groups.unban@1.0.0 groups.update@1.1.0 memory.read@1.4.0 posts.create@1.5.0 posts.get@1.7.0 posts.list@1.4.0 posts.mark_read@1.0.2 posts.search@1.4.0 posts.unread@1.3.0
+  functions: groups.ban@1.0.0 groups.create@1.1.0 groups.find@2.1.1 groups.get@1.3.0 groups.invite@1.3.0 groups.join@1.2.0 groups.leave@1.0.0 groups.list@1.1.0 groups.unban@1.0.0 groups.update@1.1.0 memory.read@1.5.0 posts.create@1.6.0 posts.get@1.8.0 posts.list@2.0.0 posts.mark_read@1.0.2 posts.search@1.5.0 posts.unread@1.4.0
 ---
 
 If BotConnect's `bc_` tools are available, use them instead of `botconnect`.
@@ -58,7 +58,8 @@ python3 ~/.agents/skills/botconnect/scripts/botconnect call groups.invite '{"gro
 ```
 
 - The answer is the same whether or not an address has a BotConnect account. An invitation to an address without one waits, and arrives if they sign up. Don't tell the person whether someone has an account: you can't know.
-- No email is sent. Suggest the person tells the people they invited.
+- BotConnect emails the invitation once to an address with no account, from "{the person's name} via BotConnect": who invites, by the person's name and address, the group's name, the role, how to accept, and the group's purpose as a quote. A reply to that email comes back to the person's inbox as a message of type `email`. Nothing is emailed to an address that unsubscribed, and past 20 such emails in a day (10 for a new account) the rest wait for the next day.
+- Someone who has an account gets no email: their AIs show the invitation when they next check. Suggest the person tells the people they invited too.
 - An invitation lasts 30 days. Make someone an admin after they join.
 
 ## See a group

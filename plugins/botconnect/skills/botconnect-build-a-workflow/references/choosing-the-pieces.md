@@ -1,0 +1,24 @@
+# Choosing the pieces
+
+A rule the server enforces holds for every AI in the group, whichever client it is and whatever it read. A rule in the guide holds only as well as each AI keeps it. So for each rule in a design, find the row below and use its feature; what no feature covers goes in the guide as a convention, and the person is told which is which.
+
+| The workflow needs | The server feature | Set it with | Taught by | What stays a convention |
+|---|---|---|---|---|
+| An item must carry certain facts | A declared type with `required` fields; a malformed item is refused with each field's path | posts.set_channel `types` | boards | What a good value is, such as a title's wording, and anything in a reply, which isn't checked |
+| No two items may share a value, such as a deal's ID or a listing's reference | A `unique` field; a duplicate is refused with `conflict`, naming the item that holds it | posts.set_channel `types` | boards | Spelling the value the same way each time |
+| Only certain people may move an item to a status | A move in `transitions` with `by`: `members`, `admins`, `author`, `everyone` or `field:<name>`; any other move is refused, listing those allowed | posts.set_channel `transitions` | boards | Why someone makes a move, which goes in the update's `note` |
+| A move needs a reason or a fact, such as why a deal was rejected | A move's `requires`, the fields that must be set after it | posts.set_channel `transitions` | boards | What the reason should say |
+| One person claims an item at a time | A move with `records`, which sets a person field to whoever claimed it and that no edit changes; whoever claims second is refused with `conflict` and the item as it is now | posts.set_channel `transitions`, then posts.update with the item's `version` | boards | Telling the group when you will do it |
+| An item lapses, such as a claim nobody finished or a listing left too long | A hold: a move's `expires` sends the item back after a time, or a move `from: "new"` holds it from the day it is posted | posts.set_channel `transitions` | boards | Reposting or renewing something that lapsed |
+| A list people ask for often, such as "my open jobs" | A saved view, with `me` and `now` resolved for each caller; posts.counts counts it | posts.set_channel `views`, then posts.list with `view` | boards | Which view to use for what, in the guide |
+| People outside the group read it | A public board or feed of an open group: every signed-in account reads it without joining, named by person ID, and only the group's people post | groups.create with `"join_policy": "open"`, then posts.set_channel `visibility: "everyone"` | boards (`references/public-boards.md`) | What a stranger may be shown, which each poster decides |
+| A reference document people outside read | A published document, or one shared with an audience and released | memory.set_visibility, memory.release | memory (`references/sharing.md`) | Keeping drafts out of what is released |
+| The same answer from many people, such as availability or a vote | An ask, whose answers the server checks against its fields and gathers in one table | messages.ask, then messages.responses | messages | What each answer moves on the board, which the asker's AI does |
+| An answer from someone with no AI | An ask to a contact's email address with no account, answered by replying to the email or on the answer page it links | contacts.add, then messages.ask | messages | Chasing someone who didn't answer |
+| Email comes in, such as forwarded decks or requests | An intake address on a board, where each email becomes an item and the same email twice makes one, or on a folder of documents | posts.set_channel `intake: true`, or memory.set_intake | boards, memory (`references/sharing.md`) | Filling an emailed item's required fields, and who forwards what |
+| A bot reacts to what happens | The event stream: a subscription, read from a cursor and acknowledged | events.subscribe, events.read, events.ack | this skill, session-handoff | Something on the host must run the bot, such as a scheduled task |
+| Something must happen at a time | A reminder that reaches the stream at that time | events.remind | this skill | Anything that repeats: a scheduled task on the host |
+| Material about one thing is found together | A tag on posts, messages and documents, which posts.list, memory.list and search.all filter on | `tags` on posts.create, messages.send and in a document's frontmatter | memory, boards | Which tag to use, named in the guide |
+| An extract stays true to its source | A `derived-from` relation, marked stale when the source changes | relations.add, relations.list | memory (`references/provenance.md`) | Refreshing the extract, which the person approves |
+
+Some rules have no feature: how polite to be, what counts as a good listing, when to escalate. Write them in the guide's "Conventions", and keep them few.
